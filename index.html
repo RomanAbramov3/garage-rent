@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Учет аренды гаражей</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    body { margin: 0; background:#f6f7fb; color:#111; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+    .grid { display:grid; gap:14px; grid-template-columns: 1fr; }
+    @media (min-width: 900px){ .grid { grid-template-columns: 1fr 1fr; } }
+    .card { background:#fff; border:1px solid #e6e8ef; border-radius:14px; padding:14px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
+    h1 { margin: 0 0 10px; font-size: 22px; }
+    h2 { margin: 0 0 10px; font-size: 16px; }
+    label { display:block; font-size: 12px; color:#555; margin: 10px 0 6px; }
+    input, select, button, textarea { width:100%; box-sizing: border-box; padding:10px; border-radius:10px; border:1px solid #d7dbe6; background:#fff; }
+    textarea { resize: vertical; min-height: 44px; }
+    button { cursor:pointer; border:0; background:#1a73e8; color:#fff; font-weight:600; }
+    button.secondary { background:#eef2ff; color:#1f2a44; border:1px solid #d7dbe6; }
+    button.danger { background:#ffe9e9; color:#7a0610; border:1px solid #f5b5b5; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .row { display:flex; gap:10px; }
+    .row > * { flex:1; }
+    .kpi { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    .kpi .box { padding:12px; border-radius:12px; border:1px solid #e6e8ef; background:#fbfcff; }
+    .kpi .name { font-size: 12px; color:#555; }
+    .kpi .val { font-size: 18px; font-weight: 750; margin-top: 4px; }
+    .val.good { color:#0b7a34; }
+    .val.bad { color:#b42318; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px; border-bottom:1px solid #eef0f6; text-align:left; font-size: 13px; }
+    th { font-size: 12px; color:#555; font-weight: 650; }
+    .tag { display:inline-block; padding:3px 8px; border-radius:999px; font-size: 12px; border:1px solid #e6e8ef; }
+    .tag.in { background:#eaf6ee; border-color:#bfe7cd; }
+    .tag.out { background:#fdecec; border-color:#f7b4b4; }
+    .muted { color:#666; font-size: 12px; }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #e6e8ef; background:#fbfcff; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Учет доходов/расходов по аренде гаражей</h1>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Гаражи</h2>
+
+        <div class="row">
+          <div>
+            <label>Название гаража</label>
+            <input id="garageName" placeholder="Напр. Гараж #1 (Крыша новая)" />
+          </div>
+          <div style="align-self:end;">
+            <button id="addGarageBtn">Добавить</button>
+          </div>
+        </div>
+
+        <label>Список гаражей</label>
+        <select id="garageList" size="6"></select>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="secondary" id="renameGarageBtn">Переименовать</button>
+          <button class="danger" id="deleteGarageBtn">Удалить</button>
+        </div>
+
+        <hr style="margin:14px 0; border:none; border-top:1px solid #eef0f6;" />
+
+        <h2>Аренда “в один клик”</h2>
+        <p class="muted" style="margin:0 0 8px;">
+          Выбираешь гараж → задаёшь аренду в месяц → потом раз в месяц жмёшь одну кнопку.
+        </p>
+
+        <label>Гараж для настройки</label>
+        <select id="rentGarage"></select>
+
+        <div class="row">
+          <div>
+            <label>Аренда в месяц (₽)</label>
+            <input id="rentAmount" type="number" min="0" step="1" placeholder="Напр. 6000" />
+          </div>
+          <div style="align-self:end;">
+            <button class="secondary" id="saveRentBtn">Сохранить</button>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <div class="pill" id="rentStatus">Аренда не задана</div>
+          </div>
+          <div style="align-self:end;">
+            <button id="oneClickPayBtn">Зачесть аренду за этот месяц</button>
+          </div>
+        </div>
+
+        <p class="muted" style="margin:10px 0 0;">
+          Кнопка не даст зачесть аренду второй раз за тот же месяц. (Защита от “сам себе заплатил дважды”.)
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Добавить операцию вручную</h2>
+
+        <label>Гараж</label>
+        <select id="txGarage"></select>
+
+        <div class="row">
+          <div>
+            <label>Тип</label>
+            <select id="txType">
+              <option value="income">Доход</option>
+              <option value="expense">Расход</option>
+            </select>
+          </div>
+          <div>
+            <label>Сумма (₽)</label>
+            <input id="txAmount" type="number" min="0" step="1" placeholder="Напр. 12500" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Дата</label>
+            <input id="txDate" type="date" />
+          </div>
+          <div>
+            <label>Категория</label>
+            <input id="txCategory" placeholder="Аренда / Электричество / Ремонт..." />
+          </div>
+        </div>
+
+        <label>Комментарий</label>
+        <textarea id="txNote" placeholder="Напр. оплата за январь / замена замка"></textarea>
+
+        <div style="margin-top:10px;">
+          <button id="addTxBtn">Сохранить операцию</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h2>Отчет</h2>
+
+      <div class="row">
+        <div>
+          <label>Фильтр: гараж</label>
+          <select id="filterGarage"></select>
+        </div>
+        <div>
+          <label>Фильтр: месяц</label>
+          <input id="filterMonth" type="month" />
+        </div>
+        <div style="align-self:end;">
+          <button class="secondary" id="resetFiltersBtn">Сбросить</button>
+        </div>
+      </div>
+
+      <div class="kpi" style="margin-top:12px;">
+        <div class="box">
+          <div class="name">Доход</div>
+          <div class="val good" id="kpiIncome">0 ₽</div>
+        </div>
+        <div class="box">
+          <div class="name">Расход</div>
+          <div class="val bad" id="kpiExpense">0 ₽</div>
+        </div>
+        <div class="box">
+          <div class="name">Прибыль</div>
+          <div class="val" id="kpiProfit">0 ₽</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px; overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Гараж</th>
+              <th>Тип</th>
+              <th>Категория</th>
+              <th>Сумма</th>
+              <th>Комментарий</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="txTable"></tbody>
+        </table>
+      </div>
+
+      <p class="muted" style="margin:10px 0 0;">
+        Хранится в браузере. Если почистишь данные браузера — улетит вместе с ними, как арендаторы весной 🙂
+      </p>
+    </div>
+  </div>
+
+<script>
+  const KEY = "garage_rent_v2";
+
+  function uid() {
+    return Math.random().toString(16).slice(2) + Date.now().toString(16);
+  }
+
+  function migrateIfNeeded(state) {
+    // Подхватываем данные из v1 (если были)
+    const old = localStorage.getItem("garage_rent_v1");
+    if (old && (!state || !state.garages)) {
+      try {
+        const v1 = JSON.parse(old);
+        const migrated = {
+          garages: (v1.garages || []).map(g => ({ id: g.id || uid(), name: g.name || "Гараж", rent: g.rent || 0 })),
+          tx: (v1.tx || []).map(t => ({ ...t, id: t.id || uid() }))
+        };
+        localStorage.setItem(KEY, JSON.stringify(migrated));
+        return migrated;
+      } catch (e) {}
+    }
+    return state;
+  }
+
+  function load() {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) {
+      const init = { garages: [{ id: uid(), name: "Гараж #1", rent: 0 }], tx: [] };
+      localStorage.setItem(KEY, JSON.stringify(init));
+      return init;
+    }
+    try {
+      const st = JSON.parse(raw);
+      return migrateIfNeeded(st);
+    } catch(e) {
+      return { garages: [], tx: [] };
+    }
+  }
+
+  function save(state) {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  }
+
+  function fmtRub(n) {
+    const x = Math.round(Number(n) || 0);
+    return x.toLocaleString("ru-RU") + " ₽";
+  }
+
+  function todayISO() {
+    const d = new Date();
+    const tz = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return tz.toISOString().slice(0,10);
+  }
+
+  function monthKey(isoDate) { // "YYYY-MM"
+    return (isoDate || "").slice(0,7);
+  }
+
+  const el = (id) => document.getElementById(id);
+
+  const garageName = el("garageName");
+  const addGarageBtn = el("addGarageBtn");
+  const garageList = el("garageList");
+  const renameGarageBtn = el("renameGarageBtn");
+  const deleteGarageBtn = el("deleteGarageBtn");
+
+  const rentGarage = el("rentGarage");
+  const rentAmount = el("rentAmount");
+  const saveRentBtn = el("saveRentBtn");
+  const rentStatus = el("rentStatus");
+  const oneClickPayBtn = el("oneClickPayBtn");
+
+  const txGarage = el("txGarage");
+  const txType = el("txType");
+  const txAmount = el("txAmount");
+  const txDate = el("txDate");
+  const txCategory = el("txCategory");
+  const txNote = el("txNote");
+  const addTxBtn = el("addTxBtn");
+
+  const filterGarage = el("filterGarage");
+  const filterMonth = el("filterMonth");
+  const resetFiltersBtn = el("resetFiltersBtn");
+
+  const kpiIncome = el("kpiIncome");
+  const kpiExpense = el("kpiExpense");
+  const kpiProfit = el("kpiProfit");
+
+  const txTable = el("txTable");
+
+  let state = load();
+
+  function getGarage(id) {
+    return state.garages.find(x => x.id === id) || null;
+  }
+
+  function getGarageName(id) {
+    const g = getGarage(id);
+    return g ? g.name : "—";
+  }
+
+  function hasRentPaymentForMonth(garageId, ym) {
+    return state.tx.some(t =>
+      t.garageId === garageId &&
+      t.type === "income" &&
+      (t.category || "").toLowerCase().trim() === "аренда" &&
+      monthKey(t.date) === ym
+    );
+  }
+
+  function refreshOneClickUI() {
+    const gid = rentGarage.value;
+    const g = getGarage(gid);
+
+    if (!g) {
+      rentStatus.textContent = "Гараж не выбран";
+      oneClickPayBtn.disabled = true;
+      return;
+    }
+
+    const rent = Number(g.rent || 0);
+    const ym = filterMonth.value || monthKey(todayISO());
+
+    if (!rent || rent <= 0) {
+      rentStatus.textContent = "Аренда не задана";
+      oneClickPayBtn.disabled = true;
+      oneClickPayBtn.textContent = "Зачесть аренду за этот месяц";
+      return;
+    }
+
+    const already = hasRentPaymentForMonth(gid, ym);
+    rentStatus.textContent = `Аренда: ${fmtRub(rent)} / мес`;
+
+    if (already) {
+      oneClickPayBtn.disabled = true;
+      oneClickPayBtn.textContent = "Уже зачтено за этот месяц";
+    } else {
+      oneClickPayBtn.disabled = false;
+      oneClickPayBtn.textContent = `Зачесть аренду за ${ym}`;
+    }
+  }
+
+  function refreshGarageSelects() {
+    garageList.innerHTML = "";
+    rentGarage.innerHTML = "";
+    txGarage.innerHTML = "";
+    filterGarage.innerHTML = "";
+
+    state.garages.forEach(g => {
+      const opt1 = document.createElement("option");
+      opt1.value = g.id;
+      opt1.textContent = g.name;
+      garageList.appendChild(opt1);
+
+      const opt2 = document.createElement("option");
+      opt2.value = g.id;
+      opt2.textContent = g.name;
+      rentGarage.appendChild(opt2);
+
+      const opt3 = document.createElement("option");
+      opt3.value = g.id;
+      opt3.textContent = g.name;
+      txGarage.appendChild(opt3);
+    });
+
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = "Все гаражи";
+    filterGarage.appendChild(all);
+    state.garages.forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g.id;
+      opt.textContent = g.name;
+      filterGarage.appendChild(opt);
+    });
+
+    if (state.garages.length) {
+      if (!garageList.value) garageList.value = state.garages[0].id;
+      if (!txGarage.value) txGarage.value = state.garages[0].id;
+      if (!rentGarage.value) rentGarage.value = state.garages[0].id;
+    }
+
+    // подставим rentAmount по выбранному гаражу
+    const g = getGarage(rentGarage.value);
+    rentAmount.value = g ? (g.rent || "") : "";
+    refreshOneClickUI();
+  }
+
+  function applyFilters(tx) {
+    let res = [...tx];
+    const g = filterGarage.value;
+    const m = filterMonth.value; // YYYY-MM
+    if (g) res = res.filter(t => t.garageId === g);
+    if (m) res = res.filter(t => (t.date || "").slice(0,7) === m);
+    res.sort((a,b) => (b.date || "").localeCompare(a.date || ""));
+    return res;
+  }
+
+  function refreshReport() {
+    const rows = applyFilters(state.tx);
+
+    let inc = 0, exp = 0;
+    rows.forEach(t => {
+      const amt = Number(t.amount) || 0;
+      if (t.type === "income") inc += amt;
+      else exp += amt;
+    });
+
+    kpiIncome.textContent = fmtRub(inc);
+    kpiExpense.textContent = fmtRub(exp);
+
+    const profit = inc - exp;
+    kpiProfit.textContent = fmtRub(profit);
+    kpiProfit.classList.toggle("good", profit > 0);
+    kpiProfit.classList.toggle("bad", profit < 0);
+
+    txTable.innerHTML = "";
+    rows.forEach(t => {
+      const tr = document.createElement("tr");
+
+      const typeTag = document.createElement("span");
+      typeTag.className = "tag " + (t.type === "income" ? "in" : "out");
+      typeTag.textContent = t.type === "income" ? "Доход" : "Расход";
+
+      tr.innerHTML = `
+        <td>${t.date || "—"}</td>
+        <td>${getGarageName(t.garageId)}</td>
+        <td></td>
+        <td>${(t.category || "").trim() || "—"}</td>
+        <td>${fmtRub(t.amount)}</td>
+        <td>${(t.note || "").trim() || "—"}</td>
+        <td></td>
+      `;
+      tr.children[2].appendChild(typeTag);
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "secondary";
+      delBtn.textContent = "Удалить";
+      delBtn.onclick = () => {
+        if (!confirm("Удалить операцию?")) return;
+        state.tx = state.tx.filter(x => x.id !== t.id);
+        save(state);
+        refreshReport();
+        refreshOneClickUI();
+      };
+      tr.children[6].appendChild(delBtn);
+
+      txTable.appendChild(tr);
+    });
+
+    refreshOneClickUI();
+  }
+
+  // гаражи
+  addGarageBtn.onclick = () => {
+    const name = (garageName.value || "").trim();
+    if (!name) { alert("Введи название гаража."); return; }
+    state.garages.push({ id: uid(), name, rent: 0 });
+    garageName.value = "";
+    save(state);
+    refreshGarageSelects();
+    refreshReport();
+  };
+
+  renameGarageBtn.onclick = () => {
+    const id = garageList.value;
+    if (!id) { alert("Выбери гараж."); return; }
+    const g = getGarage(id);
+    const name = prompt("Новое название гаража:", g ? g.name : "");
+    if (!name) return;
+    g.name = name.trim();
+    save(state);
+    refreshGarageSelects();
+    refreshReport();
+  };
+
+  deleteGarageBtn.onclick = () => {
+    const id = garageList.value;
+    if (!id) { alert("Выбери гараж."); return; }
+    const gname = getGarageName(id);
+    if (!confirm(`Удалить "${gname}" и все операции по нему?`)) return;
+    state.garages = state.garages.filter(g => g.id !== id);
+    state.tx = state.tx.filter(t => t.garageId !== id);
+    save(state);
+    refreshGarageSelects();
+    refreshReport();
+  };
+
+  // аренда в один клик
+  rentGarage.onchange = () => {
+    const g = getGarage(rentGarage.value);
+    rentAmount.value = g ? (g.rent || "") : "";
+    refreshOneClickUI();
+  };
+
+  saveRentBtn.onclick = () => {
+    const gid = rentGarage.value;
+    const g = getGarage(gid);
+    if (!g) { alert("Выбери гараж."); return; }
+
+    const amt = Math.round(Number(rentAmount.value) || 0);
+    if (amt <= 0) { alert("Аренда должна быть больше 0."); return; }
+
+    g.rent = amt;
+    save(state);
+    refreshOneClickUI();
+    alert(`Сохранено: ${g.name} = ${fmtRub(amt)} / месяц`);
+  };
+
+  oneClickPayBtn.onclick = () => {
+    const gid = rentGarage.value;
+    const g = getGarage(gid);
+    if (!g) { alert("Выбери гараж."); return; }
+
+    const rent = Number(g.rent || 0);
+    if (!rent || rent <= 0) { alert("Сначала задай аренду в месяц."); return; }
+
+    const ym = filterMonth.value || monthKey(todayISO());
+    if (hasRentPaymentForMonth(gid, ym)) {
+      alert("За этот месяц уже зачтено.");
+      refreshOneClickUI();
+      return;
+    }
+
+    const date = todayISO();
+    state.tx.push({
+      id: uid(),
+      garageId: gid,
+      type: "income",
+      amount: Math.round(rent),
+      date,
+      category: "Аренда",
+      note: `Оплата за ${ym}`
+    });
+
+    save(state);
+    refreshReport();
+  };
+
+  // ручные операции
+  addTxBtn.onclick = () => {
+    const garageId = txGarage.value;
+    if (!garageId) { alert("Сначала добавь хотя бы один гараж."); return; }
+
+    const type = txType.value;
+    const amount = Number(txAmount.value);
+    const date = txDate.value;
+    const category = (txCategory.value || "").trim();
+    const note = (txNote.value || "").trim();
+
+    if (!date) { alert("Выбери дату."); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { alert("Сумма должна быть больше 0."); return; }
+
+    state.tx.push({
+      id: uid(),
+      garageId,
+      type,
+      amount: Math.round(amount),
+      date,
+      category,
+      note
+    });
+
+    txAmount.value = "";
+    txCategory.value = "";
+    txNote.value = "";
+    save(state);
+    refreshReport();
+  };
+
+  // фильтры
+  filterGarage.onchange = refreshReport;
+  filterMonth.onchange = () => { refreshReport(); refreshOneClickUI(); };
+  resetFiltersBtn.onclick = () => {
+    filterGarage.value = "";
+    filterMonth.value = monthKey(todayISO());
+    refreshReport();
+  };
+
+  // init
+  txDate.value = todayISO();
+  filterMonth.value = monthKey(todayISO());
+
+  refreshGarageSelects();
+  refreshReport();
+</script>
+</body>
+</html>
