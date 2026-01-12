@@ -3,25 +3,30 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Учет аренды гаражей</title>
+  <title>Аренда гаражей — контроль оплат</title>
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
     body { margin: 0; background:#f6f7fb; color:#111; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
-    .grid { display:grid; gap:14px; grid-template-columns: 1fr; }
-    @media (min-width: 900px){ .grid { grid-template-columns: 1fr 1fr; } }
-    .card { background:#fff; border:1px solid #e6e8ef; border-radius:14px; padding:14px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
+    .wrap { max-width: 1050px; margin: 0 auto; padding: 18px; }
     h1 { margin: 0 0 10px; font-size: 22px; }
     h2 { margin: 0 0 10px; font-size: 16px; }
+    .grid { display:grid; gap:14px; grid-template-columns: 1fr; }
+    @media (min-width: 980px){ .grid { grid-template-columns: 1.2fr .8fr; } }
+    .card { background:#fff; border:1px solid #e6e8ef; border-radius:14px; padding:14px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
     label { display:block; font-size: 12px; color:#555; margin: 10px 0 6px; }
     input, select, button, textarea { width:100%; box-sizing: border-box; padding:10px; border-radius:10px; border:1px solid #d7dbe6; background:#fff; }
     textarea { resize: vertical; min-height: 44px; }
-    button { cursor:pointer; border:0; background:#1a73e8; color:#fff; font-weight:600; }
+    button { cursor:pointer; border:0; background:#1a73e8; color:#fff; font-weight:650; }
     button.secondary { background:#eef2ff; color:#1f2a44; border:1px solid #d7dbe6; }
     button.danger { background:#ffe9e9; color:#7a0610; border:1px solid #f5b5b5; }
     button:disabled { opacity:.55; cursor:not-allowed; }
-    .row { display:flex; gap:10px; }
-    .row > * { flex:1; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; }
+    .row > * { flex:1; min-width: 160px; }
+    .muted { color:#666; font-size: 12px; }
+    .status { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border-radius:999px; border:1px solid #e6e8ef; font-size:12px; }
+    .ok { background:#eaf6ee; border-color:#bfe7cd; }
+    .bad { background:#fdecec; border-color:#f7b4b4; }
+    .soon { background:#fff6e6; border-color:#ffe1a8; }
     .kpi { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
     .kpi .box { padding:12px; border-radius:12px; border:1px solid #e6e8ef; background:#fbfcff; }
     .kpi .name { font-size: 12px; color:#555; }
@@ -29,118 +34,206 @@
     .val.good { color:#0b7a34; }
     .val.bad { color:#b42318; }
     table { width:100%; border-collapse: collapse; }
-    th, td { padding:10px; border-bottom:1px solid #eef0f6; text-align:left; font-size: 13px; }
+    th, td { padding:10px; border-bottom:1px solid #eef0f6; text-align:left; font-size: 13px; vertical-align: top; }
     th { font-size: 12px; color:#555; font-weight: 650; }
-    .tag { display:inline-block; padding:3px 8px; border-radius:999px; font-size: 12px; border:1px solid #e6e8ef; }
-    .tag.in { background:#eaf6ee; border-color:#bfe7cd; }
-    .tag.out { background:#fdecec; border-color:#f7b4b4; }
-    .muted { color:#666; font-size: 12px; }
-    .pill { display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #e6e8ef; background:#fbfcff; font-size: 12px; }
+    .mini { font-size:12px; color:#666; margin-top:3px; }
+    .actions { display:flex; gap:8px; flex-wrap: wrap; }
+    .actions button { padding:8px 10px; border-radius:10px; }
+    .nowrap { white-space: nowrap; }
+    .tabs { display:flex; gap:8px; overflow:auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+    .tab { flex:0 0 auto; padding:8px 12px; border-radius:999px; border:1px solid #e6e8ef; background:#fbfcff; font-size:13px; color:#1f2a44; cursor:pointer; user-select:none; }
+    .tab.active { background:#1a73e8; color:#fff; border-color:#1a73e8; }
+    .tab:active { transform: translateY(1px); }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Учет доходов/расходов по аренде гаражей</h1>
+    <h1>Контроль оплат по аренде гаражей</h1>
+    <p class="muted" style="margin:0 0 12px;">
+      У каждого гаража свой день оплаты (по договору). Можно отмечать оплату полностью или частями. Льгота: 2 дня.
+    </p>
 
     <div class="grid">
       <div class="card">
-        <h2>Гаражи</h2>
+        <h2>Панель оплат</h2>
+
+        <div class="tabs" id="quickTabs">
+          <div class="tab active" data-mode="all" id="tabAll">Все</div>
+          <div class="tab" data-mode="overdue" id="tabOverdue">Просрочено</div>
+          <div class="tab" data-mode="grace" id="tabGrace">Льгота</div>
+          <div class="tab" data-mode="due7" id="tabDue7">Скоро</div>
+        </div>
 
         <div class="row">
           <div>
-            <label>Название гаража</label>
-            <input id="garageName" placeholder="Напр. Гараж #1 (Крыша новая)" />
+            <label>Показывать</label>
+            <select id="viewMode">
+              <option value="all">Все</option>
+              <option value="unpaid">Только НЕ оплачено</option>
+              <option value="due7">Срок в ближайшие 7 дней</option>
+              <option value="overdue">Просрочено</option>
+              <option value="grace">Льгота (2 дня)</option>
+            </select>
           </div>
-          <div style="align-self:end;">
-            <button id="addGarageBtn">Добавить</button>
-          </div>
-        </div>
 
-        <label>Список гаражей</label>
-        <select id="garageList" size="6"></select>
-
-        <div class="row" style="margin-top:10px;">
-          <button class="secondary" id="renameGarageBtn">Переименовать</button>
-          <button class="danger" id="deleteGarageBtn">Удалить</button>
-        </div>
-
-        <hr style="margin:14px 0; border:none; border-top:1px solid #eef0f6;" />
-
-        <h2>Аренда “в один клик”</h2>
-        <p class="muted" style="margin:0 0 8px;">
-          Выбираешь гараж → задаёшь аренду в месяц → потом раз в месяц жмёшь одну кнопку.
-        </p>
-
-        <label>Гараж для настройки</label>
-        <select id="rentGarage"></select>
-
-        <div class="row">
           <div>
-            <label>Аренда в месяц (₽)</label>
-            <input id="rentAmount" type="number" min="0" step="1" placeholder="Напр. 6000" />
+            <label>Поиск (гараж или арендатор)</label>
+            <input id="searchText" placeholder="Напр. Гараж #3 / Иван / +7903..." />
           </div>
-          <div style="align-self:end;">
-            <button class="secondary" id="saveRentBtn">Сохранить</button>
+
+          <div style="align-self:end; min-width: 120px; flex:0;">
+            <button class="secondary" id="clearSearchBtn">Сбросить</button>
+          </div>
+
+          <div>
+            <label>Сортировка</label>
+            <select id="sortMode">
+              <option value="urgent">По срочности</option>
+              <option value="name">По названию</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Дата “сегодня” (для проверки)</label>
+            <input id="fakeToday" type="date" />
+          </div>
+
+          <div style="align-self:end; min-width: 120px; flex:0;">
+            <button class="secondary" id="resetTodayBtn">Сегодня</button>
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px;">
-          <div>
-            <div class="pill" id="rentStatus">Аренда не задана</div>
+        <div class="kpi" style="margin-top:12px;">
+          <div class="box">
+            <div class="name">Оплачено (текущий период)</div>
+            <div class="val good" id="kpiPaid">0</div>
           </div>
-          <div style="align-self:end;">
-            <button id="oneClickPayBtn">Зачесть аренду за этот месяц</button>
+          <div class="box">
+            <div class="name">Не оплачено / Долги</div>
+            <div class="val bad" id="kpiUnpaid">0</div>
           </div>
+          <div class="box">
+            <div class="name">Ожидается к сбору</div>
+            <div class="val" id="kpiExpected">0 ₽</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Гараж / Арендатор</th>
+                <th class="nowrap">День оплаты</th>
+                <th>Период</th>
+                <th class="nowrap">Аренда</th>
+                <th>Статус</th>
+                <th class="nowrap">Действия</th>
+              </tr>
+            </thead>
+            <tbody id="payTable"></tbody>
+          </table>
         </div>
 
         <p class="muted" style="margin:10px 0 0;">
-          Кнопка не даст зачесть аренду второй раз за тот же месяц. (Защита от “сам себе заплатил дважды”.)
+          Период: с “дня оплаты” по день перед ним в следующем месяце. Просрочка — на 3-й день после срока (льгота 2 дня).
         </p>
       </div>
 
-      <div class="card">
-        <h2>Добавить операцию вручную</h2>
+      <div>
+        <div class="card">
+          <h2>Гаражи и настройки</h2>
 
-        <label>Гараж</label>
-        <select id="txGarage"></select>
+          <div class="row">
+            <div>
+              <label>Название гаража</label>
+              <input id="garageName" placeholder="Напр. Гараж #1 (свет)" />
+            </div>
+            <div style="align-self:end;">
+              <button id="addGarageBtn">Добавить гараж</button>
+            </div>
+          </div>
 
-        <div class="row">
-          <div>
-            <label>Тип</label>
-            <select id="txType">
-              <option value="income">Доход</option>
-              <option value="expense">Расход</option>
-            </select>
+          <label>Выбери гараж для настройки</label>
+          <select id="garageSelect" size="6"></select>
+
+          <div class="row" style="margin-top:10px;">
+            <button class="secondary" id="renameGarageBtn">Переименовать</button>
+            <button class="danger" id="deleteGarageBtn">Удалить</button>
           </div>
-          <div>
-            <label>Сумма (₽)</label>
-            <input id="txAmount" type="number" min="0" step="1" placeholder="Напр. 12500" />
+
+          <hr style="margin:14px 0; border:none; border-top:1px solid #eef0f6;" />
+
+          <h2>Настройки оплаты по договору</h2>
+          <label>Арендатор (как тебе удобно)</label>
+          <input id="tenantName" placeholder="Имя/ник, можно телефон" />
+
+          <div class="row">
+            <div>
+              <label>Аренда в месяц (₽)</label>
+              <input id="rentAmount" type="number" min="0" step="1" placeholder="Напр. 6000" />
+            </div>
+            <div>
+              <label>День оплаты (1–28)</label>
+              <input id="rentDay" type="number" min="1" max="28" step="1" placeholder="Напр. 17" />
+            </div>
           </div>
+
+          <div class="row" style="margin-top:10px;">
+            <button class="secondary" id="saveSettingsBtn">Сохранить настройки</button>
+          </div>
+
+          <p class="muted" style="margin:10px 0 0;">
+            День оплаты 1–28 — чтобы февраль не устраивал сюрпризы.
+          </p>
         </div>
 
-        <div class="row">
-          <div>
-            <label>Дата</label>
-            <input id="txDate" type="date" />
-          </div>
-          <div>
-            <label>Категория</label>
-            <input id="txCategory" placeholder="Аренда / Электричество / Ремонт..." />
-          </div>
-        </div>
+        <div class="card" style="margin-top:14px;">
+          <h2>Ручные операции (расходы/прочие доходы)</h2>
 
-        <label>Комментарий</label>
-        <textarea id="txNote" placeholder="Напр. оплата за январь / замена замка"></textarea>
+          <label>Гараж</label>
+          <select id="txGarage"></select>
 
-        <div style="margin-top:10px;">
-          <button id="addTxBtn">Сохранить операцию</button>
+          <div class="row">
+            <div>
+              <label>Тип</label>
+              <select id="txType">
+                <option value="income">Доход</option>
+                <option value="expense">Расход</option>
+              </select>
+            </div>
+            <div>
+              <label>Сумма (₽)</label>
+              <input id="txAmount" type="number" min="0" step="1" placeholder="Напр. 500" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Дата</label>
+              <input id="txDate" type="date" />
+            </div>
+            <div>
+              <label>Категория</label>
+              <input id="txCategory" placeholder="Свет / Ремонт / Налог..." />
+            </div>
+          </div>
+
+          <label>Комментарий</label>
+          <textarea id="txNote" placeholder="Коротко по сути"></textarea>
+
+          <div style="margin-top:10px;">
+            <button id="addTxBtn">Сохранить операцию</button>
+          </div>
+
+          <p class="muted" style="margin:10px 0 0;">
+            Аренду лучше отмечать в “Панели оплат” — там защита от дубля и учёт частичных оплат.
+          </p>
         </div>
       </div>
     </div>
 
     <div class="card" style="margin-top:14px;">
-      <h2>Отчет</h2>
-
+      <h2>Отчет (календарный месяц)</h2>
       <div class="row">
         <div>
           <label>Фильтр: гараж</label>
@@ -150,7 +243,7 @@
           <label>Фильтр: месяц</label>
           <input id="filterMonth" type="month" />
         </div>
-        <div style="align-self:end;">
+        <div style="align-self:end; min-width: 120px; flex:0;">
           <button class="secondary" id="resetFiltersBtn">Сбросить</button>
         </div>
       </div>
@@ -188,58 +281,60 @@
       </div>
 
       <p class="muted" style="margin:10px 0 0;">
-        Хранится в браузере. Если почистишь данные браузера — улетит вместе с ними, как арендаторы весной 🙂
+        Если после обновления на GitHub iPhone “не видит” изменения — смахни приложение и открой снова.
       </p>
     </div>
   </div>
 
 <script>
-  const KEY = "garage_rent_v2";
+  const KEY = "garage_rent_v6";
+  const GRACE_DAYS = 2;
 
-  function uid() {
-    return Math.random().toString(16).slice(2) + Date.now().toString(16);
-  }
+  function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
+  function parseJSON(s) { try { return JSON.parse(s); } catch(e) { return null; } }
 
-  function migrateIfNeeded(state) {
-    // Подхватываем данные из v1 (если были)
-    const old = localStorage.getItem("garage_rent_v1");
-    if (old && (!state || !state.garages)) {
-      try {
-        const v1 = JSON.parse(old);
-        const migrated = {
-          garages: (v1.garages || []).map(g => ({ id: g.id || uid(), name: g.name || "Гараж", rent: g.rent || 0 })),
-          tx: (v1.tx || []).map(t => ({ ...t, id: t.id || uid() }))
-        };
-        localStorage.setItem(KEY, JSON.stringify(migrated));
-        return migrated;
-      } catch (e) {}
+  function migrateIfNeeded() {
+    const v6 = parseJSON(localStorage.getItem(KEY));
+    if (v6 && v6.garages) return v6;
+
+    const v5 = parseJSON(localStorage.getItem("garage_rent_v5"));
+    const v4 = parseJSON(localStorage.getItem("garage_rent_v4"));
+    const v3 = parseJSON(localStorage.getItem("garage_rent_v3"));
+    const v2 = parseJSON(localStorage.getItem("garage_rent_v2"));
+    const v1 = parseJSON(localStorage.getItem("garage_rent_v1"));
+
+    const src = v5 || v4 || v3 || v2 || v1;
+    if (src && src.garages) {
+      const migrated = {
+        garages: (src.garages || []).map(g => ({
+          id: g.id || uid(),
+          name: g.name || "Гараж",
+          rent: Number(g.rent || 0),
+          rentDay: Number(g.rentDay || 1),
+          tenant: g.tenant || ""
+        })),
+        tx: (src.tx || []).map(t => ({
+          id: t.id || uid(),
+          garageId: t.garageId,
+          type: t.type,
+          amount: Number(t.amount || 0),
+          date: t.date,
+          category: t.category || "",
+          note: t.note || "",
+          periodId: t.periodId || ""
+        }))
+      };
+      localStorage.setItem(KEY, JSON.stringify(migrated));
+      return migrated;
     }
-    return state;
+
+    const init = { garages: [{ id: uid(), name: "Гараж #1", rent: 0, rentDay: 1, tenant: "" }], tx: [] };
+    localStorage.setItem(KEY, JSON.stringify(init));
+    return init;
   }
 
-  function load() {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) {
-      const init = { garages: [{ id: uid(), name: "Гараж #1", rent: 0 }], tx: [] };
-      localStorage.setItem(KEY, JSON.stringify(init));
-      return init;
-    }
-    try {
-      const st = JSON.parse(raw);
-      return migrateIfNeeded(st);
-    } catch(e) {
-      return { garages: [], tx: [] };
-    }
-  }
-
-  function save(state) {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  }
-
-  function fmtRub(n) {
-    const x = Math.round(Number(n) || 0);
-    return x.toLocaleString("ru-RU") + " ₽";
-  }
+  function save(state) { localStorage.setItem(KEY, JSON.stringify(state)); }
+  function fmtRub(n) { return (Math.round(Number(n) || 0)).toLocaleString("ru-RU") + " ₽"; }
 
   function todayISO() {
     const d = new Date();
@@ -247,23 +342,78 @@
     return tz.toISOString().slice(0,10);
   }
 
-  function monthKey(isoDate) { // "YYYY-MM"
-    return (isoDate || "").slice(0,7);
+  function addMonths(dateObj, months) {
+    const d = new Date(dateObj);
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    const lastDay = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+    d.setDate(Math.min(day, lastDay));
+    return d;
+  }
+
+  function isoFromDate(d) {
+    const tz = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return tz.toISOString().slice(0,10);
+  }
+
+  function dateFromISO(iso) {
+    const [y,m,dd] = (iso || "").split("-").map(Number);
+    return new Date(y, (m||1)-1, dd||1);
+  }
+
+  function monthKey(isoDate) { return (isoDate || "").slice(0,7); }
+
+  function calcPeriod(forISO, rentDay) {
+    const day = Math.max(1, Math.min(28, Number(rentDay || 1)));
+    const t = dateFromISO(forISO);
+    const y = t.getFullYear();
+    const m = t.getMonth();
+
+    const thisMonthStart = new Date(y, m, day);
+    let start = thisMonthStart;
+    if (t < thisMonthStart) start = new Date(y, m-1, day);
+
+    const end = new Date(addMonths(start, 1).getTime() - 24*60*60*1000);
+    return { startISO: isoFromDate(start), endISO: isoFromDate(end), periodId: isoFromDate(start) };
+  }
+
+  function daysBetweenISO(aISO, bISO) {
+    const a = dateFromISO(aISO);
+    const b = dateFromISO(bISO);
+    return Math.round((b - a) / (24*60*60*1000));
   }
 
   const el = (id) => document.getElementById(id);
 
+  const quickTabs = el("quickTabs");
+  const tabAll = el("tabAll");
+  const tabOverdue = el("tabOverdue");
+  const tabGrace = el("tabGrace");
+  const tabDue7 = el("tabDue7");
+
+  const viewMode = el("viewMode");
+  const searchText = el("searchText");
+  const clearSearchBtn = el("clearSearchBtn");
+  const sortMode = el("sortMode");
+  const fakeToday = el("fakeToday");
+  const resetTodayBtn = el("resetTodayBtn");
+
+  const kpiPaid = el("kpiPaid");
+  const kpiUnpaid = el("kpiUnpaid");
+  const kpiExpected = el("kpiExpected");
+  const payTable = el("payTable");
+
   const garageName = el("garageName");
   const addGarageBtn = el("addGarageBtn");
-  const garageList = el("garageList");
+  const garageSelect = el("garageSelect");
   const renameGarageBtn = el("renameGarageBtn");
   const deleteGarageBtn = el("deleteGarageBtn");
 
-  const rentGarage = el("rentGarage");
+  const tenantName = el("tenantName");
   const rentAmount = el("rentAmount");
-  const saveRentBtn = el("saveRentBtn");
-  const rentStatus = el("rentStatus");
-  const oneClickPayBtn = el("oneClickPayBtn");
+  const rentDay = el("rentDay");
+  const saveSettingsBtn = el("saveSettingsBtn");
 
   const txGarage = el("txGarage");
   const txType = el("txType");
@@ -280,82 +430,56 @@
   const kpiIncome = el("kpiIncome");
   const kpiExpense = el("kpiExpense");
   const kpiProfit = el("kpiProfit");
-
   const txTable = el("txTable");
 
-  let state = load();
+  let state = migrateIfNeeded();
 
-  function getGarage(id) {
-    return state.garages.find(x => x.id === id) || null;
+  function getGarage(id) { return state.garages.find(g => g.id === id) || null; }
+  function getGarageName(id) { const g = getGarage(id); return g ? g.name : "—"; }
+
+  function rentPaidSumForPeriod(garageId, periodId) {
+    return state.tx
+      .filter(t =>
+        t.garageId === garageId &&
+        t.type === "income" &&
+        (t.category || "").toLowerCase().trim() === "аренда" &&
+        (t.periodId || "") === periodId
+      )
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }
 
-  function getGarageName(id) {
-    const g = getGarage(id);
-    return g ? g.name : "—";
+  function statusBadge(kind, text) {
+    const span = document.createElement("span");
+    span.className = "status " + (kind === "ok" ? "ok" : kind === "soon" ? "soon" : "bad");
+    span.textContent = text;
+    return span;
   }
 
-  function hasRentPaymentForMonth(garageId, ym) {
-    return state.tx.some(t =>
-      t.garageId === garageId &&
-      t.type === "income" &&
-      (t.category || "").toLowerCase().trim() === "аренда" &&
-      monthKey(t.date) === ym
-    );
+  function loadGarageSettingsToForm() {
+    const g = getGarage(garageSelect.value);
+    if (!g) return;
+    tenantName.value = g.tenant || "";
+    rentAmount.value = g.rent || "";
+    rentDay.value = g.rentDay || 1;
   }
 
-  function refreshOneClickUI() {
-    const gid = rentGarage.value;
-    const g = getGarage(gid);
+  function getToday() { return fakeToday.value || todayISO(); }
 
-    if (!g) {
-      rentStatus.textContent = "Гараж не выбран";
-      oneClickPayBtn.disabled = true;
-      return;
-    }
-
-    const rent = Number(g.rent || 0);
-    const ym = filterMonth.value || monthKey(todayISO());
-
-    if (!rent || rent <= 0) {
-      rentStatus.textContent = "Аренда не задана";
-      oneClickPayBtn.disabled = true;
-      oneClickPayBtn.textContent = "Зачесть аренду за этот месяц";
-      return;
-    }
-
-    const already = hasRentPaymentForMonth(gid, ym);
-    rentStatus.textContent = `Аренда: ${fmtRub(rent)} / мес`;
-
-    if (already) {
-      oneClickPayBtn.disabled = true;
-      oneClickPayBtn.textContent = "Уже зачтено за этот месяц";
-    } else {
-      oneClickPayBtn.disabled = false;
-      oneClickPayBtn.textContent = `Зачесть аренду за ${ym}`;
-    }
-  }
-
-  function refreshGarageSelects() {
-    garageList.innerHTML = "";
-    rentGarage.innerHTML = "";
+  function refreshSelects() {
+    garageSelect.innerHTML = "";
     txGarage.innerHTML = "";
     filterGarage.innerHTML = "";
 
     state.garages.forEach(g => {
-      const opt1 = document.createElement("option");
-      opt1.value = g.id;
-      opt1.textContent = g.name;
-      garageList.appendChild(opt1);
+      const opt = document.createElement("option");
+      opt.value = g.id;
+      opt.textContent = g.name;
+      garageSelect.appendChild(opt);
 
       const opt2 = document.createElement("option");
       opt2.value = g.id;
       opt2.textContent = g.name;
-      rentGarage.appendChild(opt2);
-
-      const opt3 = document.createElement("option");
-      opt3.value = g.id;
-      opt3.textContent = g.name;
-      txGarage.appendChild(opt3);
+      txGarage.appendChild(opt2);
     });
 
     const all = document.createElement("option");
@@ -370,21 +494,239 @@
     });
 
     if (state.garages.length) {
-      if (!garageList.value) garageList.value = state.garages[0].id;
+      if (!garageSelect.value) garageSelect.value = state.garages[0].id;
       if (!txGarage.value) txGarage.value = state.garages[0].id;
-      if (!rentGarage.value) rentGarage.value = state.garages[0].id;
     }
-
-    // подставим rentAmount по выбранному гаражу
-    const g = getGarage(rentGarage.value);
-    rentAmount.value = g ? (g.rent || "") : "";
-    refreshOneClickUI();
+    loadGarageSettingsToForm();
   }
 
-  function applyFilters(tx) {
+  function matchesSearch(g, query) {
+    if (!query) return true;
+    const q = query.toLowerCase().trim();
+    if (!q) return true;
+    const hay = `${g.name || ""} ${g.tenant || ""}`.toLowerCase();
+    return hay.includes(q);
+  }
+
+  function setActiveTab(mode) {
+    [...quickTabs.querySelectorAll(".tab")].forEach(t => t.classList.remove("active"));
+    const map = { all: tabAll, overdue: tabOverdue, grace: tabGrace, due7: tabDue7 };
+    (map[mode] || tabAll).classList.add("active");
+  }
+
+  function refreshDashboard() {
+    const today = getToday();
+    const mode = viewMode.value;
+    const q = (searchText.value || "").trim();
+
+    let paidCount = 0;
+    let unpaidCount = 0;
+    let expected = 0;
+
+    let cntOverdue = 0, cntGrace = 0, cntDue7 = 0, cntAll = 0;
+
+    payTable.innerHTML = "";
+
+    let rows = state.garages
+      .filter(g => matchesSearch(g, q))
+      .map(g => {
+        const rent = Number(g.rent || 0);
+        const day = Number(g.rentDay || 1);
+        const period = calcPeriod(today, day);
+
+        const paidSum = rent > 0 ? rentPaidSumForPeriod(g.id, period.periodId) : 0;
+        const debt = Math.max(0, rent - paidSum);
+        const fullyPaid = (rent > 0) && (paidSum >= rent);
+
+        const nextStart = dateFromISO(period.startISO);
+        const nextDue = addMonths(nextStart, 1);
+        const nextDueISO = isoFromDate(nextDue);
+
+        const dleft = daysBetweenISO(today, nextDueISO);
+        const daysAfterDue = -dleft;
+
+        // просрочка/льгота считаются по факту "полностью оплачено или нет"
+        const inGrace = (!fullyPaid) && (daysAfterDue > 0 && daysAfterDue <= GRACE_DAYS);
+        const overdue = (!fullyPaid) && (daysAfterDue > GRACE_DAYS);
+        const dueSoon = (!fullyPaid) && !inGrace && !overdue && (dleft >= 0 && dleft <= 7);
+
+        const overdueDays = overdue ? (daysAfterDue - GRACE_DAYS) : 0;
+        const graceLeft = inGrace ? (GRACE_DAYS - daysAfterDue + 1) : 0;
+
+        // counters tabs (по всем)
+        cntAll++;
+        if (overdue) cntOverdue++;
+        if (inGrace) cntGrace++;
+        if (dueSoon) cntDue7++;
+
+        // filters
+        if (mode === "unpaid" && fullyPaid) return null;
+        if (mode === "due7" && !dueSoon) return null;
+        if (mode === "overdue" && !overdue) return null;
+        if (mode === "grace" && !inGrace) return null;
+
+        // KPI
+        if (fullyPaid) paidCount++;
+        else unpaidCount++;
+
+        if (!fullyPaid && rent > 0) expected += debt;
+
+        return { g, rent, day, period, fullyPaid, paidSum, debt, dleft, inGrace, overdue, dueSoon, nextDueISO, overdueDays, graceLeft };
+      })
+      .filter(Boolean);
+
+    tabAll.textContent = `Все (${cntAll})`;
+    tabOverdue.textContent = `Просрочено (${cntOverdue})`;
+    tabGrace.textContent = `Льгота (${cntGrace})`;
+    tabDue7.textContent = `Скоро (${cntDue7})`;
+
+    if (sortMode.value === "name") {
+      rows.sort((a, b) => a.g.name.localeCompare(b.g.name, "ru"));
+    } else {
+      rows.sort((a,b) => {
+        const bucket = (x) => (x.overdue ? 0 : x.inGrace ? 1 : x.dueSoon ? 2 : 3);
+        const ba = bucket(a), bb = bucket(b);
+        if (ba !== bb) return ba - bb;
+
+        if (a.overdue && b.overdue) return b.overdueDays - a.overdueDays;
+        if (a.inGrace && b.inGrace) return a.graceLeft - b.graceLeft;
+        if (a.dueSoon && b.dueSoon) return a.dleft - b.dleft;
+
+        return a.g.name.localeCompare(b.g.name, "ru");
+      });
+    }
+
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+
+      const who = document.createElement("div");
+      who.innerHTML = `<div><b>${r.g.name}</b></div>` +
+        `<div class="mini">${(r.g.tenant || "").trim() ? r.g.tenant : "— арендатор не указан"}</div>`;
+
+      const periodText = `${r.period.startISO} → ${r.period.endISO}`;
+
+      const statusCell = document.createElement("td");
+      if (r.rent <= 0) {
+        statusCell.appendChild(statusBadge("bad", "Не настроено"));
+      } else if (r.fullyPaid) {
+        statusCell.appendChild(statusBadge("ok", "Оплачено"));
+      } else if (r.debt > 0 && r.paidSum > 0) {
+        statusCell.appendChild(statusBadge("bad", `Долг: ${fmtRub(r.debt)}`));
+      } else if (r.overdue) {
+        statusCell.appendChild(statusBadge("bad", `Просрочено на ${r.overdueDays} дн.`));
+      } else if (r.inGrace) {
+        statusCell.appendChild(statusBadge("soon", `Льгота: осталось ${r.graceLeft} дн.`));
+      } else if (r.dueSoon) {
+        statusCell.appendChild(statusBadge("soon", `Срок через ${r.dleft} дн.`));
+      } else {
+        statusCell.appendChild(statusBadge("bad", "Не оплачено"));
+      }
+
+      const actionCell = document.createElement("td");
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const payBtn = document.createElement("button");
+      payBtn.textContent = "Оплачено";
+      payBtn.disabled = r.fullyPaid || r.rent <= 0;
+      payBtn.onclick = () => {
+        if (r.rent <= 0) { alert("Сначала задай сумму аренды."); return; }
+        const amount = Math.max(0, r.rent - r.paidSum);
+        if (amount <= 0) { refreshDashboard(); return; }
+
+        state.tx.push({
+          id: uid(),
+          garageId: r.g.id,
+          type: "income",
+          amount: Math.round(amount),
+          date: today,
+          category: "Аренда",
+          note: `Период ${r.period.startISO}–${r.period.endISO} (закрытие)`,
+          periodId: r.period.periodId
+        });
+        save(state);
+        refreshDashboard();
+        refreshReport();
+      };
+
+      const partialBtn = document.createElement("button");
+      partialBtn.className = "secondary";
+      partialBtn.textContent = "Частично";
+      partialBtn.disabled = r.fullyPaid || r.rent <= 0;
+      partialBtn.onclick = () => {
+        if (r.rent <= 0) { alert("Сначала задай сумму аренды."); return; }
+
+        const suggested = Math.min(r.debt || r.rent, r.rent).toString();
+        const raw = prompt(`Сколько пришло? (₽)\nАренда: ${fmtRub(r.rent)}\nУже за период: ${fmtRub(r.paidSum)}\nОстаток: ${fmtRub(r.debt)}`, suggested);
+        if (raw === null) return;
+
+        const amt = Math.round(Number(String(raw).replace(",", ".")) || 0);
+        if (amt <= 0) { alert("Сумма должна быть больше 0."); return; }
+
+        const newSum = r.paidSum + amt;
+        if (newSum > r.rent) {
+          const over = newSum - r.rent;
+          if (!confirm(`Получится переплата ${fmtRub(over)} за этот период.\nЗачесть всё равно?`)) return;
+        }
+
+        state.tx.push({
+          id: uid(),
+          garageId: r.g.id,
+          type: "income",
+          amount: Math.round(amt),
+          date: today,
+          category: "Аренда",
+          note: `Период ${r.period.startISO}–${r.period.endISO} (частично)`,
+          periodId: r.period.periodId
+        });
+        save(state);
+        refreshDashboard();
+        refreshReport();
+      };
+
+      const settingsBtn = document.createElement("button");
+      settingsBtn.className = "secondary";
+      settingsBtn.textContent = "Настроить";
+      settingsBtn.onclick = () => {
+        garageSelect.value = r.g.id;
+        loadGarageSettingsToForm();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+
+      actions.appendChild(payBtn);
+      actions.appendChild(partialBtn);
+      actions.appendChild(settingsBtn);
+      actionCell.appendChild(actions);
+
+      tr.innerHTML = `
+        <td></td>
+        <td class="nowrap">${r.day || "—"}</td>
+        <td>
+          <div>${periodText}</div>
+          <div class="mini">Следующий срок: ${r.nextDueISO}</div>
+          ${r.paidSum > 0 && !r.fullyPaid ? `<div class="mini">Оплачено за период: ${fmtRub(r.paidSum)}</div>` : ""}
+        </td>
+        <td class="nowrap">${r.rent ? fmtRub(r.rent) : "—"}</td>
+        <td></td>
+        <td class="nowrap"></td>
+      `;
+
+      tr.children[0].appendChild(who);
+      tr.children[4].replaceWith(statusCell);
+      tr.children[5].replaceWith(actionCell);
+
+      payTable.appendChild(tr);
+    });
+
+    kpiPaid.textContent = String(paidCount);
+    kpiUnpaid.textContent = String(unpaidCount);
+    kpiExpected.textContent = fmtRub(expected);
+  }
+
+  function applyFiltersTx(tx) {
     let res = [...tx];
     const g = filterGarage.value;
-    const m = filterMonth.value; // YYYY-MM
+    const m = filterMonth.value;
     if (g) res = res.filter(t => t.garageId === g);
     if (m) res = res.filter(t => (t.date || "").slice(0,7) === m);
     res.sort((a,b) => (b.date || "").localeCompare(a.date || ""));
@@ -392,7 +734,7 @@
   }
 
   function refreshReport() {
-    const rows = applyFilters(state.tx);
+    const rows = applyFiltersTx(state.tx);
 
     let inc = 0, exp = 0;
     rows.forEach(t => {
@@ -412,22 +754,15 @@
     txTable.innerHTML = "";
     rows.forEach(t => {
       const tr = document.createElement("tr");
-
-      const typeTag = document.createElement("span");
-      typeTag.className = "tag " + (t.type === "income" ? "in" : "out");
-      typeTag.textContent = t.type === "income" ? "Доход" : "Расход";
-
       tr.innerHTML = `
         <td>${t.date || "—"}</td>
         <td>${getGarageName(t.garageId)}</td>
-        <td></td>
+        <td>${t.type === "income" ? "Доход" : "Расход"}</td>
         <td>${(t.category || "").trim() || "—"}</td>
         <td>${fmtRub(t.amount)}</td>
         <td>${(t.note || "").trim() || "—"}</td>
         <td></td>
       `;
-      tr.children[2].appendChild(typeTag);
-
       const delBtn = document.createElement("button");
       delBtn.className = "secondary";
       delBtn.textContent = "Удалить";
@@ -436,106 +771,104 @@
         state.tx = state.tx.filter(x => x.id !== t.id);
         save(state);
         refreshReport();
-        refreshOneClickUI();
+        refreshDashboard();
       };
       tr.children[6].appendChild(delBtn);
-
       txTable.appendChild(tr);
     });
-
-    refreshOneClickUI();
   }
 
-  // гаражи
+  // Events
   addGarageBtn.onclick = () => {
     const name = (garageName.value || "").trim();
     if (!name) { alert("Введи название гаража."); return; }
-    state.garages.push({ id: uid(), name, rent: 0 });
+    state.garages.push({ id: uid(), name, rent: 0, rentDay: 1, tenant: "" });
     garageName.value = "";
     save(state);
-    refreshGarageSelects();
+    refreshSelects();
+    refreshDashboard();
     refreshReport();
   };
 
+  garageSelect.onchange = loadGarageSettingsToForm;
+
   renameGarageBtn.onclick = () => {
-    const id = garageList.value;
-    if (!id) { alert("Выбери гараж."); return; }
-    const g = getGarage(id);
-    const name = prompt("Новое название гаража:", g ? g.name : "");
+    const g = getGarage(garageSelect.value);
+    if (!g) return;
+    const name = prompt("Новое название гаража:", g.name);
     if (!name) return;
     g.name = name.trim();
     save(state);
-    refreshGarageSelects();
+    refreshSelects();
+    refreshDashboard();
     refreshReport();
   };
 
   deleteGarageBtn.onclick = () => {
-    const id = garageList.value;
-    if (!id) { alert("Выбери гараж."); return; }
-    const gname = getGarageName(id);
-    if (!confirm(`Удалить "${gname}" и все операции по нему?`)) return;
-    state.garages = state.garages.filter(g => g.id !== id);
-    state.tx = state.tx.filter(t => t.garageId !== id);
+    const g = getGarage(garageSelect.value);
+    if (!g) return;
+    if (!confirm(`Удалить "${g.name}" и все операции по нему?`)) return;
+    state.garages = state.garages.filter(x => x.id !== g.id);
+    state.tx = state.tx.filter(t => t.garageId !== g.id);
     save(state);
-    refreshGarageSelects();
+    refreshSelects();
+    refreshDashboard();
     refreshReport();
   };
 
-  // аренда в один клик
-  rentGarage.onchange = () => {
-    const g = getGarage(rentGarage.value);
-    rentAmount.value = g ? (g.rent || "") : "";
-    refreshOneClickUI();
-  };
+  saveSettingsBtn.onclick = () => {
+    const g = getGarage(garageSelect.value);
+    if (!g) return;
 
-  saveRentBtn.onclick = () => {
-    const gid = rentGarage.value;
-    const g = getGarage(gid);
-    if (!g) { alert("Выбери гараж."); return; }
+    const rent = Math.round(Number(rentAmount.value) || 0);
+    const day = Math.round(Number(rentDay.value) || 1);
+    const tenant = (tenantName.value || "").trim();
 
-    const amt = Math.round(Number(rentAmount.value) || 0);
-    if (amt <= 0) { alert("Аренда должна быть больше 0."); return; }
+    if (rent < 0) { alert("Сумма не может быть отрицательной."); return; }
+    if (day < 1 || day > 28) { alert("День оплаты: 1–28."); return; }
 
-    g.rent = amt;
-    save(state);
-    refreshOneClickUI();
-    alert(`Сохранено: ${g.name} = ${fmtRub(amt)} / месяц`);
-  };
-
-  oneClickPayBtn.onclick = () => {
-    const gid = rentGarage.value;
-    const g = getGarage(gid);
-    if (!g) { alert("Выбери гараж."); return; }
-
-    const rent = Number(g.rent || 0);
-    if (!rent || rent <= 0) { alert("Сначала задай аренду в месяц."); return; }
-
-    const ym = filterMonth.value || monthKey(todayISO());
-    if (hasRentPaymentForMonth(gid, ym)) {
-      alert("За этот месяц уже зачтено.");
-      refreshOneClickUI();
-      return;
-    }
-
-    const date = todayISO();
-    state.tx.push({
-      id: uid(),
-      garageId: gid,
-      type: "income",
-      amount: Math.round(rent),
-      date,
-      category: "Аренда",
-      note: `Оплата за ${ym}`
-    });
+    g.rent = rent;
+    g.rentDay = day;
+    g.tenant = tenant;
 
     save(state);
-    refreshReport();
+    refreshDashboard();
+    alert("Сохранено.");
   };
 
-  // ручные операции
+  quickTabs.addEventListener("click", (e) => {
+    const tab = e.target.closest(".tab");
+    if (!tab) return;
+    const mode = tab.dataset.mode;
+    viewMode.value = mode;
+    setActiveTab(mode);
+    refreshDashboard();
+  });
+
+  viewMode.onchange = () => {
+    setActiveTab(viewMode.value);
+    refreshDashboard();
+  };
+
+  sortMode.onchange = refreshDashboard;
+  fakeToday.onchange = refreshDashboard;
+  resetTodayBtn.onclick = () => { fakeToday.value = todayISO(); refreshDashboard(); };
+
+  let searchTimer = null;
+  searchText.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(refreshDashboard, 120);
+  });
+
+  clearSearchBtn.onclick = () => {
+    searchText.value = "";
+    refreshDashboard();
+    searchText.focus();
+  };
+
   addTxBtn.onclick = () => {
     const garageId = txGarage.value;
-    if (!garageId) { alert("Сначала добавь хотя бы один гараж."); return; }
+    if (!garageId) { alert("Сначала добавь гараж."); return; }
 
     const type = txType.value;
     const amount = Number(txAmount.value);
@@ -546,37 +879,28 @@
     if (!date) { alert("Выбери дату."); return; }
     if (!Number.isFinite(amount) || amount <= 0) { alert("Сумма должна быть больше 0."); return; }
 
-    state.tx.push({
-      id: uid(),
-      garageId,
-      type,
-      amount: Math.round(amount),
-      date,
-      category,
-      note
-    });
-
-    txAmount.value = "";
-    txCategory.value = "";
-    txNote.value = "";
+    state.tx.push({ id: uid(), garageId, type, amount: Math.round(amount), date, category, note, periodId: "" });
+    txAmount.value = ""; txCategory.value = ""; txNote.value = "";
     save(state);
     refreshReport();
+    refreshDashboard();
   };
 
-  // фильтры
   filterGarage.onchange = refreshReport;
-  filterMonth.onchange = () => { refreshReport(); refreshOneClickUI(); };
+  filterMonth.onchange = refreshReport;
   resetFiltersBtn.onclick = () => {
     filterGarage.value = "";
     filterMonth.value = monthKey(todayISO());
     refreshReport();
   };
 
-  // init
+  fakeToday.value = todayISO();
   txDate.value = todayISO();
   filterMonth.value = monthKey(todayISO());
 
-  refreshGarageSelects();
+  refreshSelects();
+  setActiveTab("all");
+  refreshDashboard();
   refreshReport();
 </script>
 </body>
