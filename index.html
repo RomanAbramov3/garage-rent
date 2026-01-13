@@ -4,61 +4,128 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Аренда гаражей — контроль оплат</title>
+
+  <!-- Убирает “html” иконку: встроенный favicon + иконка для iPhone -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a73e8'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' font-size='28' font-family='Arial' fill='white'%3E₽%3C/text%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231a73e8'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='86' font-family='Arial' fill='white'%3E₽%3C/text%3E%3C/svg%3E">
+  <meta name="theme-color" content="#1a73e8">
+
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    body { margin: 0; background:#f6f7fb; color:#111; }
+    body {
+      margin: 0;
+      color:#111;
+      background:
+        radial-gradient(circle at 12px 12px, rgba(26,115,232,0.06) 1.2px, transparent 1.2px) 0 0/22px 22px,
+        #f6f7fb;
+    }
+
     .wrap { max-width: 1050px; margin: 0 auto; padding: 18px; position: relative; }
+
+    /* Motivational sticker */
+    .sticker {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      max-width: 260px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(26,115,232,.18);
+      background: rgba(255,255,255,.65);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.06);
+      font-style: italic;
+      font-weight: 700;
+      letter-spacing: .2px;
+      color: rgba(25, 42, 68, .86);
+      animation: breathe 5.5s ease-in-out infinite;
+      user-select: none;
+      pointer-events: none;
+    }
+    .sticker small { display:block; font-style: normal; font-weight: 650; opacity: .75; margin-top: 2px; }
+    @keyframes breathe {
+      0%   { opacity: .55; transform: translateY(0); }
+      50%  { opacity: .95; transform: translateY(-1px); }
+      100% { opacity: .55; transform: translateY(0); }
+    }
+    @media (max-width: 600px){
+      .sticker { position: static; margin: 10px 0 12px; max-width: none; }
+    }
+
     h1 { margin: 0 0 10px; font-size: 22px; }
     h2 { margin: 0 0 10px; font-size: 16px; }
 
-    /* subtle background pattern */
-    body::before{
-      content:"";
-      position:fixed; inset:0;
-      background:
-        radial-gradient(circle at 20px 20px, rgba(26,115,232,.06) 1px, transparent 1px);
-      background-size: 26px 26px;
-      pointer-events:none;
-      z-index:0;
+    .grid { display:grid; gap:14px; grid-template-columns: 1fr; }
+    @media (min-width: 980px){ .grid { grid-template-columns: 1.2fr .8fr; } }
+
+    .card {
+      background:#fff;
+      border:1px solid #e6e8ef;
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.04);
     }
 
-    .grid { display:grid; gap:14px; grid-template-columns: 1fr; position: relative; z-index:1; }
-    @media (min-width: 980px){ .grid { grid-template-columns: 1.2fr .8fr; } }
-    .card { background:#fff; border:1px solid #e6e8ef; border-radius:14px; padding:14px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
     label { display:block; font-size: 12px; color:#555; margin: 10px 0 6px; }
-    input, select, button, textarea { width:100%; box-sizing: border-box; padding:10px; border-radius:10px; border:1px solid #d7dbe6; background:#fff; }
+    input, select, button, textarea {
+      width:100%;
+      box-sizing: border-box;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #d7dbe6;
+      background:#fff;
+    }
     textarea { resize: vertical; min-height: 44px; }
-    button { cursor:pointer; border:0; background:#1a73e8; color:#fff; font-weight:650; }
+    button { cursor:pointer; border:0; background:#1a73e8; color:#fff; font-weight:800; }
     button.secondary { background:#eef2ff; color:#1f2a44; border:1px solid #d7dbe6; }
     button.danger { background:#ffe9e9; color:#7a0610; border:1px solid #f5b5b5; }
     button:disabled { opacity:.55; cursor:not-allowed; }
+
     .row { display:flex; gap:10px; flex-wrap: wrap; }
     .row > * { flex:1; min-width: 160px; }
+
     .muted { color:#666; font-size: 12px; }
+
     .status { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border-radius:999px; border:1px solid #e6e8ef; font-size:12px; }
-    .ok { background:#eaf6ee; border-color:#bfe7cd; }
-    .bad { background:#fdecec; border-color:#f7b4b4; }
-    .soon { background:#fff6e6; border-color:#ffe1a8; }
+    .ok   { background:#eaf6ee; border-color:#bfe7cd; color:#0b7a34; }
+    .bad  { background:#fdecec; border-color:#f7b4b4; color:#b42318; }
+    .soon { background:#fff6e6; border-color:#ffe1a8; color:#8a5a00; }
+    .neutral { background:#f1f5ff; border-color:#d7dbe6; color:#1f2a44; }
+
     .kpi { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
     .kpi .box { padding:12px; border-radius:12px; border:1px solid #e6e8ef; background:#fbfcff; }
     .kpi .name { font-size: 12px; color:#555; }
-    .kpi .val { font-size: 18px; font-weight: 750; margin-top: 4px; }
+    .kpi .val { font-size: 18px; font-weight: 900; margin-top: 4px; }
     .val.good { color:#0b7a34; }
     .val.bad { color:#b42318; }
+
     table { width:100%; border-collapse: collapse; }
     th, td { padding:10px; border-bottom:1px solid #eef0f6; text-align:left; font-size: 13px; vertical-align: top; }
-    th { font-size: 12px; color:#555; font-weight: 650; }
+    th { font-size: 12px; color:#555; font-weight: 800; }
+
     .mini { font-size:12px; color:#666; margin-top:3px; }
     .actions { display:flex; gap:8px; flex-wrap: wrap; }
     .actions button { padding:8px 10px; border-radius:10px; }
     .nowrap { white-space: nowrap; }
 
+    /* tabs */
     .tabs { display:flex; gap:8px; overflow:auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
-    .tab { flex:0 0 auto; padding:8px 12px; border-radius:999px; border:1px solid #e6e8ef; background:#fbfcff; font-size:13px; color:#1f2a44; cursor:pointer; user-select:none; }
+    .tab {
+      flex:0 0 auto;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid #e6e8ef;
+      background:#fbfcff;
+      font-size:13px;
+      color:#1f2a44;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .06s ease;
+    }
     .tab.active { background:#1a73e8; color:#fff; border-color:#1a73e8; }
     .tab:active { transform: translateY(1px); }
 
-    /* Table wrapper for report: keep the block compact */
+    /* Report table wrap: keeps “Отчет” compact, scroll inside */
     .tableWrap {
       max-height: 380px;
       overflow: auto;
@@ -69,56 +136,46 @@
       .tableWrap { max-height: 300px; }
     }
 
-    /* Motivational sticker (top-right) */
-    .sticker {
+    /* Confetti */
+    .confetti {
       position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 5;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.75);
-      border: 1px solid rgba(230,232,239,.9);
-      box-shadow: 0 10px 24px rgba(0,0,0,.08);
-      backdrop-filter: blur(8px);
-      max-width: 220px;
-      transform: rotate(1deg);
       pointer-events: none;
+      left: 0; top: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      z-index: 9999;
     }
-    .sticker .txt{
-      font-style: italic;
-      font-weight: 700;
-      letter-spacing: .2px;
-      line-height: 1.15;
-      color: rgba(31,42,68,.85);
-      text-align: right;
+    .confetti i {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 999px;
+      background: rgba(26,115,232,.9);
+      opacity: .95;
+      transform: translate(-50%, -50%);
+      animation: pop .45s ease-out forwards;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.12));
     }
-    .sticker .sub{
-      margin-top: 6px;
-      font-size: 11px;
-      color: rgba(100,110,130,.8);
-      text-align: right;
-    }
-
-    @media (max-width: 520px){
-      .sticker{ max-width: 180px; padding: 8px 10px; }
-      .sticker .txt{ font-size: 13px; }
+    @keyframes pop {
+      from { transform: translate(-50%,-50%) scale(1); opacity:.95; }
+      to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.8); opacity:0; }
     }
   </style>
 </head>
-<body>
-  <div class="sticker" id="sticker">
-    <div class="txt">Дорогу осилит идущий</div>
-    <div class="sub">💪 маленький шаг — большой результат</div>
-  </div>
 
+<body>
   <div class="wrap">
+    <div class="sticker">
+      Дорогу осилит идущий
+      <small>— фиксируй оплату одним тапом</small>
+    </div>
+
     <h1>Контроль оплат по аренде гаражей</h1>
     <p class="muted" style="margin:0 0 12px;">
-      Один тап — закрыть аренду за период. Можно частями. Бэкап в Telegram — чтобы данные не улетели в сугроб вместе с iPhone.
+      Оплаты можно отмечать полностью или частями. Льгота: 2 дня. Данные на телефоне — делай бэкап в Telegram.
     </p>
 
     <div class="grid">
+      <!-- LEFT COLUMN -->
       <div class="card">
         <h2>Панель оплат</h2>
 
@@ -154,9 +211,9 @@
             <label>Сортировка</label>
             <select id="sortMode">
               <option value="urgent">По срочности</option>
+              <option value="nextpay">По ближайшей оплате</option>
+              <option value="day">По дню оплаты (1–28)</option>
               <option value="name">По названию</option>
-              <option value="nextDue">По ближайшей оплате</option>
-              <option value="day128">По дню оплаты (1–28)</option>
             </select>
           </div>
 
@@ -202,10 +259,11 @@
         </div>
 
         <p class="muted" style="margin:10px 0 0;">
-          Период: с “дня оплаты” по день перед ним в следующем месяце. Просрочка — на 3-й день после срока (льгота 2 дня).
+          Период: с дня оплаты по день перед ним в следующем месяце. Просрочка — на 3-й день после срока (льгота 2 дня).
         </p>
       </div>
 
+      <!-- RIGHT COLUMN -->
       <div>
         <div class="card">
           <h2>Гаражи и настройки</h2>
@@ -230,7 +288,7 @@
 
           <hr style="margin:14px 0; border:none; border-top:1px solid #eef0f6;" />
 
-          <h2>Настройки оплаты по договору</h2>
+          <h2>Настройки оплаты</h2>
           <label>Арендатор</label>
           <input id="tenantName" placeholder="Имя/ник, можно телефон" />
 
@@ -246,24 +304,29 @@
           </div>
 
           <div class="row" style="margin-top:10px;">
-            <button class="secondary" id="saveSettingsBtn">💾 Сохранить настройки</button>
+            <button class="secondary" id="saveSettingsBtn">💾 Сохранить</button>
           </div>
 
           <hr style="margin:14px 0; border:none; border-top:1px solid #eef0f6;" />
 
-          <h2>Резервная копия (Telegram)</h2>
+          <h2>Резервная копия</h2>
           <div class="row">
-            <button class="secondary" id="backupBtn">📦 Сделать бэкап</button>
-            <button class="secondary" id="restoreBtn">♻️ Восстановить</button>
+            <div style="min-width: 220px;">
+              <button class="secondary" id="backupBtn">📦 Бэкап (в Telegram)</button>
+              <div class="mini">Скачает файл — отправь его в Telegram → “Избранное”.</div>
+            </div>
+            <div style="min-width: 220px;">
+              <button class="secondary" id="restoreBtn">♻️ Восстановить</button>
+              <div class="mini">Выбери файл <b>garage-backup-....json</b>.</div>
+            </div>
           </div>
+
+          <div class="mini" id="backupHint" style="margin-top:8px;"></div>
           <input id="restoreFile" type="file" accept="application/json" style="display:none;" />
-          <p class="muted" style="margin:10px 0 0;">
-            Нажми “Бэкап” → отправь файл в Telegram → “Избранное”. Раз в месяц приложение напомнит.
-          </p>
         </div>
 
         <div class="card" style="margin-top:14px;">
-          <h2>Ручные операции (расходы/прочие доходы)</h2>
+          <h2>Ручные операции</h2>
 
           <label>Гараж</label>
           <select id="txGarage"></select>
@@ -297,16 +360,17 @@
           <textarea id="txNote" placeholder="Коротко по сути"></textarea>
 
           <div style="margin-top:10px;">
-            <button id="addTxBtn">✅ Сохранить операцию</button>
+            <button id="addTxBtn">➕ Сохранить операцию</button>
           </div>
 
           <p class="muted" style="margin:10px 0 0;">
-            Аренду лучше отмечать в “Панели оплат” — там учёт частичных оплат и долга.
+            Аренду лучше отмечать в “Панели оплат” — там учёт частичных оплат и период.
           </p>
         </div>
       </div>
-    </div>
+    </div><!-- /grid -->
 
+    <!-- REPORT: специально ВНЕ grid, чтобы был во всю ширину -->
     <div class="card" style="margin-top:14px;">
       <h2>Отчет (календарный месяц)</h2>
       <div class="row">
@@ -362,52 +426,14 @@
   </div>
 
 <script>
-  const KEY = "garage_rent_v7";
+  const KEY = "garage_rent_v8";
   const GRACE_DAYS = 2;
-  const LAST_BACKUP_KEY = "garage_rent_last_backup_month"; // YYYY-MM
+
+  const BACKUP_META_KEY = "garage_rent_backup_meta_v1";
+  const REMIND_DAYS = 31;
 
   function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
   function parseJSON(s) { try { return JSON.parse(s); } catch(e) { return null; } }
-
-  function migrateIfNeeded() {
-    const v7 = parseJSON(localStorage.getItem(KEY));
-    if (v7 && v7.garages) return v7;
-
-    const keys = ["garage_rent_v6","garage_rent_v5","garage_rent_v4","garage_rent_v3","garage_rent_v2","garage_rent_v1"];
-    let src = null;
-    for (const k of keys) {
-      const v = parseJSON(localStorage.getItem(k));
-      if (v && v.garages) { src = v; break; }
-    }
-    if (src) {
-      const migrated = {
-        garages: (src.garages || []).map(g => ({
-          id: g.id || uid(),
-          name: g.name || "Гараж",
-          rent: Number(g.rent || 0),
-          rentDay: Number(g.rentDay || 1),
-          tenant: g.tenant || ""
-        })),
-        tx: (src.tx || []).map(t => ({
-          id: t.id || uid(),
-          garageId: t.garageId,
-          type: t.type,
-          amount: Number(t.amount || 0),
-          date: t.date,
-          category: t.category || "",
-          note: t.note || "",
-          periodId: t.periodId || ""
-        }))
-      };
-      localStorage.setItem(KEY, JSON.stringify(migrated));
-      return migrated;
-    }
-
-    const init = { garages: [{ id: uid(), name: "Гараж #1", rent: 0, rentDay: 1, tenant: "" }], tx: [] };
-    localStorage.setItem(KEY, JSON.stringify(init));
-    return init;
-  }
-
   function save(state) { localStorage.setItem(KEY, JSON.stringify(state)); }
   function fmtRub(n) { return (Math.round(Number(n) || 0)).toLocaleString("ru-RU") + " ₽"; }
 
@@ -465,48 +491,92 @@
     return Math.round((b - a) / (24*60*60*1000));
   }
 
-  // confetti (tiny, short)
-  function confettiBurst(x, y) {
-    const count = 10;
-    for (let i = 0; i < count; i++) {
-      const dot = document.createElement("div");
-      dot.style.position = "fixed";
-      dot.style.left = x + "px";
-      dot.style.top = y + "px";
-      dot.style.width = "6px";
-      dot.style.height = "6px";
-      dot.style.borderRadius = "999px";
-      dot.style.background = `hsl(${Math.floor(Math.random()*360)}, 85%, 60%)`;
-      dot.style.zIndex = 9999;
-      dot.style.pointerEvents = "none";
-      document.body.appendChild(dot);
+  function migrateIfNeeded() {
+    const v8 = parseJSON(localStorage.getItem(KEY));
+    if (v8 && v8.garages) return v8;
 
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 30 + Math.random() * 40;
-      const dx = Math.cos(angle) * dist;
-      const dy = Math.sin(angle) * dist;
+    const v7 = parseJSON(localStorage.getItem("garage_rent_v7"));
+    const v6 = parseJSON(localStorage.getItem("garage_rent_v6"));
+    const v5 = parseJSON(localStorage.getItem("garage_rent_v5"));
+    const v4 = parseJSON(localStorage.getItem("garage_rent_v4"));
+    const v3 = parseJSON(localStorage.getItem("garage_rent_v3"));
+    const v2 = parseJSON(localStorage.getItem("garage_rent_v2"));
+    const v1 = parseJSON(localStorage.getItem("garage_rent_v1"));
 
-      dot.animate([
-        { transform: "translate(0,0) scale(1)", opacity: 1 },
-        { transform: `translate(${dx}px, ${dy}px) scale(0.9)`, opacity: 0 }
-      ], { duration: 380 + Math.random()*220, easing: "cubic-bezier(.2,.8,.2,1)" });
-
-      setTimeout(() => dot.remove(), 700);
+    const src = v7 || v6 || v5 || v4 || v3 || v2 || v1;
+    if (src && src.garages) {
+      const migrated = {
+        garages: (src.garages || []).map(g => ({
+          id: g.id || uid(),
+          name: g.name || "Гараж",
+          rent: Number(g.rent || 0),
+          rentDay: Number(g.rentDay || 1),
+          tenant: g.tenant || ""
+        })),
+        tx: (src.tx || []).map(t => ({
+          id: t.id || uid(),
+          garageId: t.garageId,
+          type: t.type,
+          amount: Number(t.amount || 0),
+          date: t.date,
+          category: t.category || "",
+          note: t.note || "",
+          periodId: t.periodId || ""
+        }))
+      };
+      localStorage.setItem(KEY, JSON.stringify(migrated));
+      return migrated;
     }
+
+    const init = { garages: [{ id: uid(), name: "Гараж #1", rent: 0, rentDay: 1, tenant: "" }], tx: [] };
+    localStorage.setItem(KEY, JSON.stringify(init));
+    return init;
   }
 
-  // Sticker breathing opacity
-  const sticker = document.getElementById("sticker");
-  (function stickerBreath(){
-    let t = 0;
-    function tick(){
-      t += 0.015;
-      const a = 0.65 + 0.25 * Math.sin(t);
-      sticker.style.opacity = a.toFixed(3);
-      requestAnimationFrame(tick);
+  // Backup meta
+  function loadBackupMeta() {
+    return parseJSON(localStorage.getItem(BACKUP_META_KEY)) || { lastBackupISO: "" };
+  }
+  function saveBackupMeta(meta) {
+    localStorage.setItem(BACKUP_META_KEY, JSON.stringify(meta));
+  }
+  function daysSince(iso) {
+    if (!iso) return 9999;
+    const a = dateFromISO(isoFromDate(new Date()));
+    const b = dateFromISO(iso);
+    return Math.round((a - b) / (24*60*60*1000));
+  }
+
+  // Confetti burst
+  function confettiBurst(x, y) {
+    const layer = document.createElement("div");
+    layer.className = "confetti";
+    document.body.appendChild(layer);
+
+    const palette = [
+      "rgba(26,115,232,.92)",
+      "rgba(11,122,52,.88)",
+      "rgba(255,170,0,.85)",
+      "rgba(180,35,24,.85)",
+      "rgba(120,90,255,.85)"
+    ];
+
+    const count = 10;
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("i");
+      dot.style.left = x + "px";
+      dot.style.top = y + "px";
+      dot.style.setProperty("--dx", (Math.random() * 140 - 70).toFixed(0) + "px");
+      dot.style.setProperty("--dy", (Math.random() * -120 - 20).toFixed(0) + "px");
+      dot.style.background = palette[Math.floor(Math.random() * palette.length)];
+      const s = (6 + Math.random()*6).toFixed(0);
+      dot.style.width = s + "px";
+      dot.style.height = s + "px";
+      layer.appendChild(dot);
     }
-    requestAnimationFrame(tick);
-  })();
+
+    setTimeout(() => layer.remove(), 650);
+  }
 
   const el = (id) => document.getElementById(id);
 
@@ -542,6 +612,7 @@
   const backupBtn = el("backupBtn");
   const restoreBtn = el("restoreBtn");
   const restoreFile = el("restoreFile");
+  const backupHint = el("backupHint");
 
   const txGarage = el("txGarage");
   const txType = el("txType");
@@ -578,7 +649,7 @@
 
   function statusBadge(kind, text) {
     const span = document.createElement("span");
-    span.className = "status " + (kind === "ok" ? "ok" : kind === "soon" ? "soon" : "bad");
+    span.className = "status " + (kind === "ok" ? "ok" : kind === "soon" ? "soon" : kind === "neutral" ? "neutral" : "bad");
     span.textContent = text;
     return span;
   }
@@ -614,6 +685,7 @@
     all.value = "";
     all.textContent = "Все гаражи";
     filterGarage.appendChild(all);
+
     state.garages.forEach(g => {
       const opt = document.createElement("option");
       opt.value = g.id;
@@ -642,11 +714,73 @@
     (map[mode] || tabAll).classList.add("active");
   }
 
-  function updateTabCounts(cntAll, cntOverdue, cntGrace, cntDue7) {
-    tabAll.textContent = `Все (${cntAll})`;
-    tabOverdue.textContent = `Просрочено (${cntOverdue})`;
-    tabGrace.textContent = `Льгота (${cntGrace})`;
-    tabDue7.textContent = `Скоро (${cntDue7})`;
+  function refreshBackupHint() {
+    const meta = loadBackupMeta();
+    if (!meta.lastBackupISO) {
+      backupHint.innerHTML = `<span class="status bad">⚠️ Бэкап ещё не делали</span> <span class="mini">Сделай и отправь файл в Telegram → “Избранное”.</span>`;
+      return;
+    }
+    const d = daysSince(meta.lastBackupISO);
+    if (d >= REMIND_DAYS) {
+      backupHint.innerHTML = `<span class="status soon">⏰ Пора сделать бэкап</span> <span class="mini">Прошло ${d} дн. с последнего (${meta.lastBackupISO}).</span>`;
+    } else {
+      backupHint.innerHTML = `<span class="status ok">✅ Бэкап свежий</span> <span class="mini">Последний: ${meta.lastBackupISO} (${d} дн. назад).</span>`;
+    }
+  }
+
+  function maybeMonthlyReminder() {
+    const meta = loadBackupMeta();
+    const d = meta.lastBackupISO ? daysSince(meta.lastBackupISO) : 9999;
+    if (d >= REMIND_DAYS) {
+      setTimeout(() => {
+        alert("⏰ Прошёл месяц. Сделай резервную копию и отправь файл в Telegram → “Избранное”.");
+      }, 250);
+    }
+  }
+
+  function downloadJSON(filename, dataObj) {
+    const blob = new Blob([JSON.stringify(dataObj, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 250);
+  }
+
+  function safeNormalizeState(obj) {
+    if (!obj || typeof obj !== "object") return null;
+    if (!Array.isArray(obj.garages) || !Array.isArray(obj.tx)) return null;
+
+    const garages = obj.garages.map(g => ({
+      id: String(g.id || uid()),
+      name: String(g.name || "Гараж"),
+      rent: Math.round(Number(g.rent || 0)),
+      rentDay: Math.max(1, Math.min(28, Math.round(Number(g.rentDay || 1)))),
+      tenant: String(g.tenant || "")
+    }));
+
+    const garageIds = new Set(garages.map(g => g.id));
+
+    const tx = obj.tx
+      .filter(t => t && typeof t === "object")
+      .map(t => ({
+        id: String(t.id || uid()),
+        garageId: String(t.garageId || ""),
+        type: (t.type === "expense" ? "expense" : "income"),
+        amount: Math.round(Number(t.amount || 0)),
+        date: String(t.date || ""),
+        category: String(t.category || ""),
+        note: String(t.note || ""),
+        periodId: String(t.periodId || "")
+      }))
+      .filter(t => garageIds.has(t.garageId) && t.amount > 0 && /^\d{4}-\d{2}-\d{2}$/.test(t.date));
+
+    return { garages, tx };
   }
 
   function refreshDashboard() {
@@ -702,21 +836,33 @@
 
         if (!fullyPaid && rent > 0) expected += debt;
 
-        return { g, rent, day, period, fullyPaid, paidSum, debt, dleft, inGrace, overdue, dueSoon, nextDueISO, overdueDays, graceLeft };
+        const periodLabel = monthNameRuFromISO(period.startISO);
+
+        return {
+          g, rent, day, period,
+          fullyPaid, paidSum, debt,
+          dleft, inGrace, overdue, dueSoon,
+          nextDueISO, overdueDays, graceLeft,
+          periodLabel
+        };
       })
       .filter(Boolean);
 
-    updateTabCounts(cntAll, cntOverdue, cntGrace, cntDue7);
+    tabAll.textContent = `Все (${cntAll})`;
+    tabOverdue.textContent = `Просрочено (${cntOverdue})`;
+    tabGrace.textContent = `Льгота (${cntGrace})`;
+    tabDue7.textContent = `Скоро (${cntDue7})`;
 
-    // sorting
-    const sm = sortMode.value;
-    if (sm === "name") {
-      rows.sort((a,b) => a.g.name.localeCompare(b.g.name, "ru"));
-    } else if (sm === "nextDue") {
-      rows.sort((a,b) => a.nextDueISO.localeCompare(b.nextDueISO) || a.g.name.localeCompare(b.g.name, "ru"));
-    } else if (sm === "day128") {
-      rows.sort((a,b) => (a.day - b.day) || a.g.name.localeCompare(b.g.name, "ru"));
-    } else { // urgent
+    // Sorting
+    const modeSort = sortMode.value;
+    if (modeSort === "name") {
+      rows.sort((a, b) => a.g.name.localeCompare(b.g.name, "ru"));
+    } else if (modeSort === "day") {
+      rows.sort((a, b) => (a.day - b.day) || a.g.name.localeCompare(b.g.name, "ru"));
+    } else if (modeSort === "nextpay") {
+      rows.sort((a, b) => a.nextDueISO.localeCompare(b.nextDueISO) || a.g.name.localeCompare(b.g.name, "ru"));
+    } else {
+      // urgent
       rows.sort((a,b) => {
         const bucket = (x) => (x.overdue ? 0 : x.inGrace ? 1 : x.dueSoon ? 2 : 3);
         const ba = bucket(a), bb = bucket(b);
@@ -734,14 +880,16 @@
       const tr = document.createElement("tr");
 
       const who = document.createElement("div");
-      who.innerHTML = `<div><b>${r.g.name}</b></div>` +
+      who.innerHTML =
+        `<div><b>${r.g.name}</b></div>` +
         `<div class="mini">${(r.g.tenant || "").trim() ? r.g.tenant : "— арендатор не указан"}</div>`;
 
-      const periodLabel = monthNameRuFromISO(r.period.startISO);
+      // Период: ТОЛЬКО месяц
+      const periodCellHTML = `<div><b>${r.periodLabel}</b></div>`;
 
       const statusCell = document.createElement("td");
       if (r.rent <= 0) {
-        statusCell.appendChild(statusBadge("bad", "Не настроено"));
+        statusCell.appendChild(statusBadge("neutral", "Не настроено"));
       } else if (r.fullyPaid) {
         statusCell.appendChild(statusBadge("ok", "Оплачено"));
       } else if (r.debt > 0 && r.paidSum > 0) {
@@ -768,7 +916,7 @@
         const amount = Math.max(0, r.rent - r.paidSum);
         if (amount <= 0) { refreshDashboard(); return; }
 
-        const wasDebt = r.debt > 0;
+        const wasFullyPaid = r.fullyPaid;
 
         state.tx.push({
           id: uid(),
@@ -777,18 +925,20 @@
           amount: Math.round(amount),
           date: today,
           category: "Аренда",
-          note: `Период ${r.period.startISO}–${r.period.endISO} (закрытие)`,
+          note: `Закрытие периода ${r.period.periodId}`,
           periodId: r.period.periodId
         });
         save(state);
-        refreshDashboard();
-        refreshReport();
 
-        // confetti when debt closed
-        if (wasDebt) {
-          const rect = ev.target.getBoundingClientRect();
+        const nowSum = rentPaidSumForPeriod(r.g.id, r.period.periodId);
+        const nowFully = (r.rent > 0) && (nowSum >= r.rent);
+        if (!wasFullyPaid && nowFully) {
+          const rect = ev.currentTarget.getBoundingClientRect();
           confettiBurst(rect.left + rect.width/2, rect.top + rect.height/2);
         }
+
+        refreshDashboard();
+        refreshReport();
       };
 
       const partialBtn = document.createElement("button");
@@ -814,8 +964,7 @@
           if (!confirm(`Получится переплата ${fmtRub(over)} за этот период.\nЗачесть всё равно?`)) return;
         }
 
-        const wasDebt = r.debt > 0;
-        const willClose = (newSum >= r.rent);
+        const wasFullyPaid = r.fullyPaid;
 
         state.tx.push({
           id: uid(),
@@ -824,17 +973,20 @@
           amount: Math.round(amt),
           date: today,
           category: "Аренда",
-          note: `Период ${r.period.startISO}–${r.period.endISO} (частично)`,
+          note: `Частично за период ${r.period.periodId}`,
           periodId: r.period.periodId
         });
         save(state);
-        refreshDashboard();
-        refreshReport();
 
-        if (wasDebt && willClose) {
-          const rect = ev.target.getBoundingClientRect();
+        const nowSum = rentPaidSumForPeriod(r.g.id, r.period.periodId);
+        const nowFully = (r.rent > 0) && (nowSum >= r.rent);
+        if (!wasFullyPaid && nowFully) {
+          const rect = ev.currentTarget.getBoundingClientRect();
           confettiBurst(rect.left + rect.width/2, rect.top + rect.height/2);
         }
+
+        refreshDashboard();
+        refreshReport();
       };
 
       const settingsBtn = document.createElement("button");
@@ -854,11 +1006,7 @@
       tr.innerHTML = `
         <td></td>
         <td class="nowrap">${r.day || "—"}</td>
-        <td>
-          <div><b>${periodLabel}</b></div>
-          <div class="mini">${r.period.startISO}–${r.period.endISO}</div>
-          ${r.paidSum > 0 && !r.fullyPaid ? `<div class="mini">Оплачено: ${fmtRub(r.paidSum)}</div>` : ""}
-        </td>
+        <td>${periodCellHTML}</td>
         <td class="nowrap">${r.rent ? fmtRub(r.rent) : "—"}</td>
         <td></td>
         <td class="nowrap"></td>
@@ -874,6 +1022,8 @@
     kpiPaid.textContent = String(paidCount);
     kpiUnpaid.textContent = String(unpaidCount);
     kpiExpected.textContent = fmtRub(expected);
+
+    refreshBackupHint();
   }
 
   function applyFiltersTx(tx) {
@@ -918,8 +1068,7 @@
       `;
       const delBtn = document.createElement("button");
       delBtn.className = "secondary";
-      delBtn.textContent = "🗑️";
-      delBtn.title = "Удалить";
+      delBtn.textContent = "🗑️ Удалить";
       delBtn.onclick = () => {
         if (!confirm("Удалить операцию?")) return;
         state.tx = state.tx.filter(x => x.id !== t.id);
@@ -932,80 +1081,7 @@
     });
   }
 
-  // Backup / Restore
-  function downloadText(filename, text) {
-    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 500);
-  }
-
-  function doBackup() {
-    const month = monthKey(todayISO());
-    const filename = `garage-backup-${month}.json`;
-    const payload = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      data: state
-    };
-    downloadText(filename, JSON.stringify(payload, null, 2));
-    localStorage.setItem(LAST_BACKUP_KEY, month);
-    alert("Бэкап скачан. Отправь файл в Telegram → Избранное.");
-  }
-
-  function doRestoreFromObject(obj) {
-    if (!obj) { alert("Файл пустой или битый."); return; }
-    const data = obj.data && obj.data.garages ? obj.data : (obj.garages ? obj : null);
-    if (!data || !Array.isArray(data.garages) || !Array.isArray(data.tx)) {
-      alert("Не похоже на бэкап этого приложения.");
-      return;
-    }
-    if (!confirm("Восстановить данные из бэкапа? Текущие данные будут заменены.")) return;
-
-    state = {
-      garages: data.garages.map(g => ({
-        id: g.id || uid(),
-        name: g.name || "Гараж",
-        rent: Number(g.rent || 0),
-        rentDay: Number(g.rentDay || 1),
-        tenant: g.tenant || ""
-      })),
-      tx: data.tx.map(t => ({
-        id: t.id || uid(),
-        garageId: t.garageId,
-        type: t.type,
-        amount: Number(t.amount || 0),
-        date: t.date,
-        category: t.category || "",
-        note: t.note || "",
-        periodId: t.periodId || ""
-      }))
-    };
-
-    save(state);
-    refreshSelects();
-    refreshDashboard();
-    refreshReport();
-    alert("Готово. Данные восстановлены.");
-  }
-
-  function maybeMonthlyBackupReminder() {
-    const nowMonth = monthKey(todayISO());
-    const last = localStorage.getItem(LAST_BACKUP_KEY) || "";
-    if (last !== nowMonth) {
-      // show once per month on open
-      setTimeout(() => {
-        alert("⚠️ Прошёл месяц. Сделай резервную копию и отправь файл в Telegram → Избранное.");
-      }, 600);
-    }
-  }
-
-  // Events
+  // --- events ---
   addGarageBtn.onclick = () => {
     const name = (garageName.value || "").trim();
     if (!name) { alert("Введи название гаража."); return; }
@@ -1061,17 +1137,6 @@
     save(state);
     refreshDashboard();
     alert("Сохранено.");
-  };
-
-  backupBtn.onclick = doBackup;
-  restoreBtn.onclick = () => restoreFile.click();
-  restoreFile.onchange = async () => {
-    const f = restoreFile.files && restoreFile.files[0];
-    if (!f) return;
-    const text = await f.text();
-    const obj = parseJSON(text);
-    doRestoreFromObject(obj);
-    restoreFile.value = "";
   };
 
   quickTabs.addEventListener("click", (e) => {
@@ -1132,6 +1197,64 @@
     refreshReport();
   };
 
+  // Backup / Restore
+  backupBtn.onclick = () => {
+    const now = todayISO();
+    const filename = `garage-backup-${now.slice(0,7)}.json`;
+
+    const payload = {
+      app: "garage-rent",
+      version: KEY,
+      createdISO: now,
+      data: state
+    };
+
+    downloadJSON(filename, payload);
+
+    const meta = loadBackupMeta();
+    meta.lastBackupISO = now;
+    saveBackupMeta(meta);
+    refreshBackupHint();
+
+    alert("📦 Бэкап скачался. Теперь отправь файл в Telegram → “Избранное”.");
+  };
+
+  restoreBtn.onclick = () => restoreFile.click();
+
+  restoreFile.addEventListener("change", async () => {
+    const f = restoreFile.files && restoreFile.files[0];
+    restoreFile.value = "";
+    if (!f) return;
+
+    try {
+      const text = await f.text();
+      const obj = parseJSON(text);
+      const rawData = obj && obj.data ? obj.data : obj;
+      const normalized = safeNormalizeState(rawData);
+
+      if (!normalized) {
+        alert("Файл не похож на бэкап приложения. Проверь, что это garage-backup-...json");
+        return;
+      }
+
+      if (!confirm("Восстановить данные из файла? Текущие данные будут заменены.")) return;
+
+      state = normalized;
+      save(state);
+
+      const meta = loadBackupMeta();
+      if (!meta.lastBackupISO) meta.lastBackupISO = todayISO();
+      saveBackupMeta(meta);
+
+      refreshSelects();
+      refreshDashboard();
+      refreshReport();
+      alert("♻️ Готово. Данные восстановлены.");
+    } catch (e) {
+      alert("Не удалось прочитать файл. Попробуй другой.");
+    }
+  });
+
   // init
   fakeToday.value = todayISO();
   txDate.value = todayISO();
@@ -1141,7 +1264,9 @@
   setActiveTab("all");
   refreshDashboard();
   refreshReport();
-  maybeMonthlyBackupReminder();
+
+  refreshBackupHint();
+  maybeMonthlyReminder();
 </script>
 </body>
 </html>
