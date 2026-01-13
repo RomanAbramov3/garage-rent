@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html lang="ru">
 <head>
@@ -7,10 +8,22 @@
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
     body { margin: 0; background:#f6f7fb; color:#111; }
-    .wrap { max-width: 1050px; margin: 0 auto; padding: 18px; }
+    .wrap { max-width: 1050px; margin: 0 auto; padding: 18px; position: relative; }
     h1 { margin: 0 0 10px; font-size: 22px; }
     h2 { margin: 0 0 10px; font-size: 16px; }
-    .grid { display:grid; gap:14px; grid-template-columns: 1fr; }
+
+    /* subtle background pattern */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background:
+        radial-gradient(circle at 20px 20px, rgba(26,115,232,.06) 1px, transparent 1px);
+      background-size: 26px 26px;
+      pointer-events:none;
+      z-index:0;
+    }
+
+    .grid { display:grid; gap:14px; grid-template-columns: 1fr; position: relative; z-index:1; }
     @media (min-width: 980px){ .grid { grid-template-columns: 1.2fr .8fr; } }
     .card { background:#fff; border:1px solid #e6e8ef; border-radius:14px; padding:14px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
     label { display:block; font-size: 12px; color:#555; margin: 10px 0 6px; }
@@ -40,17 +53,70 @@
     .actions { display:flex; gap:8px; flex-wrap: wrap; }
     .actions button { padding:8px 10px; border-radius:10px; }
     .nowrap { white-space: nowrap; }
+
     .tabs { display:flex; gap:8px; overflow:auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
     .tab { flex:0 0 auto; padding:8px 12px; border-radius:999px; border:1px solid #e6e8ef; background:#fbfcff; font-size:13px; color:#1f2a44; cursor:pointer; user-select:none; }
     .tab.active { background:#1a73e8; color:#fff; border-color:#1a73e8; }
     .tab:active { transform: translateY(1px); }
+
+    /* Table wrapper for report: keep the block compact */
+    .tableWrap {
+      max-height: 380px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 12px;
+    }
+    @media (max-width: 600px) {
+      .tableWrap { max-height: 300px; }
+    }
+
+    /* Motivational sticker (top-right) */
+    .sticker {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 5;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.75);
+      border: 1px solid rgba(230,232,239,.9);
+      box-shadow: 0 10px 24px rgba(0,0,0,.08);
+      backdrop-filter: blur(8px);
+      max-width: 220px;
+      transform: rotate(1deg);
+      pointer-events: none;
+    }
+    .sticker .txt{
+      font-style: italic;
+      font-weight: 700;
+      letter-spacing: .2px;
+      line-height: 1.15;
+      color: rgba(31,42,68,.85);
+      text-align: right;
+    }
+    .sticker .sub{
+      margin-top: 6px;
+      font-size: 11px;
+      color: rgba(100,110,130,.8);
+      text-align: right;
+    }
+
+    @media (max-width: 520px){
+      .sticker{ max-width: 180px; padding: 8px 10px; }
+      .sticker .txt{ font-size: 13px; }
+    }
   </style>
 </head>
 <body>
+  <div class="sticker" id="sticker">
+    <div class="txt">Дорогу осилит идущий</div>
+    <div class="sub">💪 маленький шаг — большой результат</div>
+  </div>
+
   <div class="wrap">
     <h1>Контроль оплат по аренде гаражей</h1>
     <p class="muted" style="margin:0 0 12px;">
-      У каждого гаража свой день оплаты (по договору). Можно отмечать оплату полностью или частями. Льгота: 2 дня.
+      Один тап — закрыть аренду за период. Можно частями. Бэкап в Telegram — чтобы данные не улетели в сугроб вместе с iPhone.
     </p>
 
     <div class="grid">
@@ -90,6 +156,8 @@
             <select id="sortMode">
               <option value="urgent">По срочности</option>
               <option value="name">По названию</option>
+              <option value="nextDue">По ближайшей оплате</option>
+              <option value="day128">По дню оплаты (1–28)</option>
             </select>
           </div>
 
@@ -123,7 +191,7 @@
             <thead>
               <tr>
                 <th>Гараж / Арендатор</th>
-                <th class="nowrap">День оплаты</th>
+                <th class="nowrap">День</th>
                 <th>Период</th>
                 <th class="nowrap">Аренда</th>
                 <th>Статус</th>
@@ -149,7 +217,7 @@
               <input id="garageName" placeholder="Напр. Гараж #1 (свет)" />
             </div>
             <div style="align-self:end;">
-              <button id="addGarageBtn">Добавить гараж</button>
+              <button id="addGarageBtn">➕ Добавить гараж</button>
             </div>
           </div>
 
@@ -157,14 +225,14 @@
           <select id="garageSelect" size="6"></select>
 
           <div class="row" style="margin-top:10px;">
-            <button class="secondary" id="renameGarageBtn">Переименовать</button>
-            <button class="danger" id="deleteGarageBtn">Удалить</button>
+            <button class="secondary" id="renameGarageBtn">✏️ Переименовать</button>
+            <button class="danger" id="deleteGarageBtn">🗑️ Удалить</button>
           </div>
 
           <hr style="margin:14px 0; border:none; border-top:1px solid #eef0f6;" />
 
           <h2>Настройки оплаты по договору</h2>
-          <label>Арендатор (как тебе удобно)</label>
+          <label>Арендатор</label>
           <input id="tenantName" placeholder="Имя/ник, можно телефон" />
 
           <div class="row">
@@ -179,11 +247,19 @@
           </div>
 
           <div class="row" style="margin-top:10px;">
-            <button class="secondary" id="saveSettingsBtn">Сохранить настройки</button>
+            <button class="secondary" id="saveSettingsBtn">💾 Сохранить настройки</button>
           </div>
 
+          <hr style="margin:14px 0; border:none; border-top:1px solid #eef0f6;" />
+
+          <h2>Резервная копия (Telegram)</h2>
+          <div class="row">
+            <button class="secondary" id="backupBtn">📦 Сделать бэкап</button>
+            <button class="secondary" id="restoreBtn">♻️ Восстановить</button>
+          </div>
+          <input id="restoreFile" type="file" accept="application/json" style="display:none;" />
           <p class="muted" style="margin:10px 0 0;">
-            День оплаты 1–28 — чтобы февраль не устраивал сюрпризы.
+            Нажми “Бэкап” → отправь файл в Telegram → “Избранное”. Раз в месяц приложение напомнит.
           </p>
         </div>
 
@@ -222,11 +298,11 @@
           <textarea id="txNote" placeholder="Коротко по сути"></textarea>
 
           <div style="margin-top:10px;">
-            <button id="addTxBtn">Сохранить операцию</button>
+            <button id="addTxBtn">✅ Сохранить операцию</button>
           </div>
 
           <p class="muted" style="margin:10px 0 0;">
-            Аренду лучше отмечать в “Панели оплат” — там защита от дубля и учёт частичных оплат.
+            Аренду лучше отмечать в “Панели оплат” — там учёт частичных оплат и долга.
           </p>
         </div>
       </div>
@@ -263,7 +339,7 @@
         </div>
       </div>
 
-      <div style="margin-top:12px; overflow:auto;">
+      <div class="tableWrap" style="margin-top:12px;">
         <table>
           <thead>
             <tr>
@@ -287,24 +363,24 @@
   </div>
 
 <script>
-  const KEY = "garage_rent_v6";
+  const KEY = "garage_rent_v7";
   const GRACE_DAYS = 2;
+  const LAST_BACKUP_KEY = "garage_rent_last_backup_month"; // YYYY-MM
 
   function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
   function parseJSON(s) { try { return JSON.parse(s); } catch(e) { return null; } }
 
   function migrateIfNeeded() {
-    const v6 = parseJSON(localStorage.getItem(KEY));
-    if (v6 && v6.garages) return v6;
+    const v7 = parseJSON(localStorage.getItem(KEY));
+    if (v7 && v7.garages) return v7;
 
-    const v5 = parseJSON(localStorage.getItem("garage_rent_v5"));
-    const v4 = parseJSON(localStorage.getItem("garage_rent_v4"));
-    const v3 = parseJSON(localStorage.getItem("garage_rent_v3"));
-    const v2 = parseJSON(localStorage.getItem("garage_rent_v2"));
-    const v1 = parseJSON(localStorage.getItem("garage_rent_v1"));
-
-    const src = v5 || v4 || v3 || v2 || v1;
-    if (src && src.garages) {
+    const keys = ["garage_rent_v6","garage_rent_v5","garage_rent_v4","garage_rent_v3","garage_rent_v2","garage_rent_v1"];
+    let src = null;
+    for (const k of keys) {
+      const v = parseJSON(localStorage.getItem(k));
+      if (v && v.garages) { src = v; break; }
+    }
+    if (src) {
       const migrated = {
         garages: (src.garages || []).map(g => ({
           id: g.id || uid(),
@@ -364,6 +440,12 @@
 
   function monthKey(isoDate) { return (isoDate || "").slice(0,7); }
 
+  function monthNameRuFromISO(iso) {
+    const d = dateFromISO(iso);
+    const months = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+    return months[d.getMonth()];
+  }
+
   function calcPeriod(forISO, rentDay) {
     const day = Math.max(1, Math.min(28, Number(rentDay || 1)));
     const t = dateFromISO(forISO);
@@ -383,6 +465,49 @@
     const b = dateFromISO(bISO);
     return Math.round((b - a) / (24*60*60*1000));
   }
+
+  // confetti (tiny, short)
+  function confettiBurst(x, y) {
+    const count = 10;
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("div");
+      dot.style.position = "fixed";
+      dot.style.left = x + "px";
+      dot.style.top = y + "px";
+      dot.style.width = "6px";
+      dot.style.height = "6px";
+      dot.style.borderRadius = "999px";
+      dot.style.background = `hsl(${Math.floor(Math.random()*360)}, 85%, 60%)`;
+      dot.style.zIndex = 9999;
+      dot.style.pointerEvents = "none";
+      document.body.appendChild(dot);
+
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 30 + Math.random() * 40;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+
+      dot.animate([
+        { transform: "translate(0,0) scale(1)", opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.9)`, opacity: 0 }
+      ], { duration: 380 + Math.random()*220, easing: "cubic-bezier(.2,.8,.2,1)" });
+
+      setTimeout(() => dot.remove(), 700);
+    }
+  }
+
+  // Sticker breathing opacity
+  const sticker = document.getElementById("sticker");
+  (function stickerBreath(){
+    let t = 0;
+    function tick(){
+      t += 0.015;
+      const a = 0.65 + 0.25 * Math.sin(t);
+      sticker.style.opacity = a.toFixed(3);
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  })();
 
   const el = (id) => document.getElementById(id);
 
@@ -414,6 +539,10 @@
   const rentAmount = el("rentAmount");
   const rentDay = el("rentDay");
   const saveSettingsBtn = el("saveSettingsBtn");
+
+  const backupBtn = el("backupBtn");
+  const restoreBtn = el("restoreBtn");
+  const restoreFile = el("restoreFile");
 
   const txGarage = el("txGarage");
   const txType = el("txType");
@@ -514,6 +643,13 @@
     (map[mode] || tabAll).classList.add("active");
   }
 
+  function updateTabCounts(cntAll, cntOverdue, cntGrace, cntDue7) {
+    tabAll.textContent = `Все (${cntAll})`;
+    tabOverdue.textContent = `Просрочено (${cntOverdue})`;
+    tabGrace.textContent = `Льгота (${cntGrace})`;
+    tabDue7.textContent = `Скоро (${cntDue7})`;
+  }
+
   function refreshDashboard() {
     const today = getToday();
     const mode = viewMode.value;
@@ -545,7 +681,6 @@
         const dleft = daysBetweenISO(today, nextDueISO);
         const daysAfterDue = -dleft;
 
-        // просрочка/льгота считаются по факту "полностью оплачено или нет"
         const inGrace = (!fullyPaid) && (daysAfterDue > 0 && daysAfterDue <= GRACE_DAYS);
         const overdue = (!fullyPaid) && (daysAfterDue > GRACE_DAYS);
         const dueSoon = (!fullyPaid) && !inGrace && !overdue && (dleft >= 0 && dleft <= 7);
@@ -553,19 +688,16 @@
         const overdueDays = overdue ? (daysAfterDue - GRACE_DAYS) : 0;
         const graceLeft = inGrace ? (GRACE_DAYS - daysAfterDue + 1) : 0;
 
-        // counters tabs (по всем)
         cntAll++;
         if (overdue) cntOverdue++;
         if (inGrace) cntGrace++;
         if (dueSoon) cntDue7++;
 
-        // filters
         if (mode === "unpaid" && fullyPaid) return null;
         if (mode === "due7" && !dueSoon) return null;
         if (mode === "overdue" && !overdue) return null;
         if (mode === "grace" && !inGrace) return null;
 
-        // KPI
         if (fullyPaid) paidCount++;
         else unpaidCount++;
 
@@ -575,14 +707,17 @@
       })
       .filter(Boolean);
 
-    tabAll.textContent = `Все (${cntAll})`;
-    tabOverdue.textContent = `Просрочено (${cntOverdue})`;
-    tabGrace.textContent = `Льгота (${cntGrace})`;
-    tabDue7.textContent = `Скоро (${cntDue7})`;
+    updateTabCounts(cntAll, cntOverdue, cntGrace, cntDue7);
 
-    if (sortMode.value === "name") {
-      rows.sort((a, b) => a.g.name.localeCompare(b.g.name, "ru"));
-    } else {
+    // sorting
+    const sm = sortMode.value;
+    if (sm === "name") {
+      rows.sort((a,b) => a.g.name.localeCompare(b.g.name, "ru"));
+    } else if (sm === "nextDue") {
+      rows.sort((a,b) => a.nextDueISO.localeCompare(b.nextDueISO) || a.g.name.localeCompare(b.g.name, "ru"));
+    } else if (sm === "day128") {
+      rows.sort((a,b) => (a.day - b.day) || a.g.name.localeCompare(b.g.name, "ru"));
+    } else { // urgent
       rows.sort((a,b) => {
         const bucket = (x) => (x.overdue ? 0 : x.inGrace ? 1 : x.dueSoon ? 2 : 3);
         const ba = bucket(a), bb = bucket(b);
@@ -603,7 +738,7 @@
       who.innerHTML = `<div><b>${r.g.name}</b></div>` +
         `<div class="mini">${(r.g.tenant || "").trim() ? r.g.tenant : "— арендатор не указан"}</div>`;
 
-      const periodText = `${r.period.startISO} → ${r.period.endISO}`;
+      const periodLabel = monthNameRuFromISO(r.period.startISO);
 
       const statusCell = document.createElement("td");
       if (r.rent <= 0) {
@@ -627,12 +762,14 @@
       actions.className = "actions";
 
       const payBtn = document.createElement("button");
-      payBtn.textContent = "Оплачено";
+      payBtn.textContent = "✅ Оплачено";
       payBtn.disabled = r.fullyPaid || r.rent <= 0;
-      payBtn.onclick = () => {
+      payBtn.onclick = (ev) => {
         if (r.rent <= 0) { alert("Сначала задай сумму аренды."); return; }
         const amount = Math.max(0, r.rent - r.paidSum);
         if (amount <= 0) { refreshDashboard(); return; }
+
+        const wasDebt = r.debt > 0;
 
         state.tx.push({
           id: uid(),
@@ -647,17 +784,26 @@
         save(state);
         refreshDashboard();
         refreshReport();
+
+        // confetti when debt closed
+        if (wasDebt) {
+          const rect = ev.target.getBoundingClientRect();
+          confettiBurst(rect.left + rect.width/2, rect.top + rect.height/2);
+        }
       };
 
       const partialBtn = document.createElement("button");
       partialBtn.className = "secondary";
-      partialBtn.textContent = "Частично";
+      partialBtn.textContent = "🧾 Частично";
       partialBtn.disabled = r.fullyPaid || r.rent <= 0;
-      partialBtn.onclick = () => {
+      partialBtn.onclick = (ev) => {
         if (r.rent <= 0) { alert("Сначала задай сумму аренды."); return; }
 
         const suggested = Math.min(r.debt || r.rent, r.rent).toString();
-        const raw = prompt(`Сколько пришло? (₽)\nАренда: ${fmtRub(r.rent)}\nУже за период: ${fmtRub(r.paidSum)}\nОстаток: ${fmtRub(r.debt)}`, suggested);
+        const raw = prompt(
+          `Сколько пришло? (₽)\nАренда: ${fmtRub(r.rent)}\nУже за период: ${fmtRub(r.paidSum)}\nОстаток: ${fmtRub(r.debt)}`,
+          suggested
+        );
         if (raw === null) return;
 
         const amt = Math.round(Number(String(raw).replace(",", ".")) || 0);
@@ -668,6 +814,9 @@
           const over = newSum - r.rent;
           if (!confirm(`Получится переплата ${fmtRub(over)} за этот период.\nЗачесть всё равно?`)) return;
         }
+
+        const wasDebt = r.debt > 0;
+        const willClose = (newSum >= r.rent);
 
         state.tx.push({
           id: uid(),
@@ -682,11 +831,16 @@
         save(state);
         refreshDashboard();
         refreshReport();
+
+        if (wasDebt && willClose) {
+          const rect = ev.target.getBoundingClientRect();
+          confettiBurst(rect.left + rect.width/2, rect.top + rect.height/2);
+        }
       };
 
       const settingsBtn = document.createElement("button");
       settingsBtn.className = "secondary";
-      settingsBtn.textContent = "Настроить";
+      settingsBtn.textContent = "⚙️ Настроить";
       settingsBtn.onclick = () => {
         garageSelect.value = r.g.id;
         loadGarageSettingsToForm();
@@ -702,9 +856,9 @@
         <td></td>
         <td class="nowrap">${r.day || "—"}</td>
         <td>
-          <div>${periodText}</div>
-          <div class="mini">Следующий срок: ${r.nextDueISO}</div>
-          ${r.paidSum > 0 && !r.fullyPaid ? `<div class="mini">Оплачено за период: ${fmtRub(r.paidSum)}</div>` : ""}
+          <div><b>${periodLabel}</b></div>
+          <div class="mini">${r.period.startISO}–${r.period.endISO}</div>
+          ${r.paidSum > 0 && !r.fullyPaid ? `<div class="mini">Оплачено: ${fmtRub(r.paidSum)}</div>` : ""}
         </td>
         <td class="nowrap">${r.rent ? fmtRub(r.rent) : "—"}</td>
         <td></td>
@@ -765,7 +919,8 @@
       `;
       const delBtn = document.createElement("button");
       delBtn.className = "secondary";
-      delBtn.textContent = "Удалить";
+      delBtn.textContent = "🗑️";
+      delBtn.title = "Удалить";
       delBtn.onclick = () => {
         if (!confirm("Удалить операцию?")) return;
         state.tx = state.tx.filter(x => x.id !== t.id);
@@ -776,6 +931,79 @@
       tr.children[6].appendChild(delBtn);
       txTable.appendChild(tr);
     });
+  }
+
+  // Backup / Restore
+  function downloadText(filename, text) {
+    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  }
+
+  function doBackup() {
+    const month = monthKey(todayISO());
+    const filename = `garage-backup-${month}.json`;
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data: state
+    };
+    downloadText(filename, JSON.stringify(payload, null, 2));
+    localStorage.setItem(LAST_BACKUP_KEY, month);
+    alert("Бэкап скачан. Отправь файл в Telegram → Избранное.");
+  }
+
+  function doRestoreFromObject(obj) {
+    if (!obj) { alert("Файл пустой или битый."); return; }
+    const data = obj.data && obj.data.garages ? obj.data : (obj.garages ? obj : null);
+    if (!data || !Array.isArray(data.garages) || !Array.isArray(data.tx)) {
+      alert("Не похоже на бэкап этого приложения.");
+      return;
+    }
+    if (!confirm("Восстановить данные из бэкапа? Текущие данные будут заменены.")) return;
+
+    state = {
+      garages: data.garages.map(g => ({
+        id: g.id || uid(),
+        name: g.name || "Гараж",
+        rent: Number(g.rent || 0),
+        rentDay: Number(g.rentDay || 1),
+        tenant: g.tenant || ""
+      })),
+      tx: data.tx.map(t => ({
+        id: t.id || uid(),
+        garageId: t.garageId,
+        type: t.type,
+        amount: Number(t.amount || 0),
+        date: t.date,
+        category: t.category || "",
+        note: t.note || "",
+        periodId: t.periodId || ""
+      }))
+    };
+
+    save(state);
+    refreshSelects();
+    refreshDashboard();
+    refreshReport();
+    alert("Готово. Данные восстановлены.");
+  }
+
+  function maybeMonthlyBackupReminder() {
+    const nowMonth = monthKey(todayISO());
+    const last = localStorage.getItem(LAST_BACKUP_KEY) || "";
+    if (last !== nowMonth) {
+      // show once per month on open
+      setTimeout(() => {
+        alert("⚠️ Прошёл месяц. Сделай резервную копию и отправь файл в Telegram → Избранное.");
+      }, 600);
+    }
   }
 
   // Events
@@ -836,6 +1064,17 @@
     alert("Сохранено.");
   };
 
+  backupBtn.onclick = doBackup;
+  restoreBtn.onclick = () => restoreFile.click();
+  restoreFile.onchange = async () => {
+    const f = restoreFile.files && restoreFile.files[0];
+    if (!f) return;
+    const text = await f.text();
+    const obj = parseJSON(text);
+    doRestoreFromObject(obj);
+    restoreFile.value = "";
+  };
+
   quickTabs.addEventListener("click", (e) => {
     const tab = e.target.closest(".tab");
     if (!tab) return;
@@ -894,6 +1133,7 @@
     refreshReport();
   };
 
+  // init
   fakeToday.value = todayISO();
   txDate.value = todayISO();
   filterMonth.value = monthKey(todayISO());
@@ -902,6 +1142,8 @@
   setActiveTab("all");
   refreshDashboard();
   refreshReport();
+  maybeMonthlyBackupReminder();
 </script>
 </body>
 </html>
+```
